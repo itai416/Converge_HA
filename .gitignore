@@ -1,0 +1,16 @@
+# Raw structures (118 MB, re-downloadable from SKEMPI 2.0) and macOS metadata
+data/SKEMPI2_PDBs/
+._*
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Local tooling / large artifacts
+.claude/
+*.pt
+*.ckpt
