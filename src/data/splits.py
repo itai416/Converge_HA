@@ -68,6 +68,31 @@ def make_folds(dedup_df: pd.DataFrame, n_seeds: int = 200) -> tuple[pd.DataFrame
     return info, seed
 
 
+def repeated_complex_folds(dedup_df: pd.DataFrame, n_repeats: int = 5, n_seeds: int = 200) -> pd.DataFrame:
+    """fold_complex assignments for repeated CV: the n_repeats most size-balanced seeds.
+
+    Repeat 0 is the seed used by `make_folds` (folds.csv); repeats with an identical partition are skipped.
+    Returns one row per complex with v1 rows and columns rep0..rep{n-1}.
+    """
+    v1 = dedup_df[_is_v1(dedup_df)].reset_index(drop=True)
+    cx = v1.groupby("complex").size()
+
+    def imbalance(f):
+        return np.bincount(f.values, weights=cx[f.index].values, minlength=N_FOLDS).std()
+
+    cands = sorted(((imbalance(f), s, f) for s in range(n_seeds) for f in [_complex_folds(v1, s)]),
+                   key=lambda t: (t[0], t[1]))
+    out, seen = {}, set()
+    for _, s, f in cands:
+        part = frozenset(frozenset(f.index[f == k]) for k in range(N_FOLDS))
+        if part not in seen:
+            seen.add(part)
+            out[f"rep{len(out)}"] = f
+        if len(out) == n_repeats:
+            break
+    return pd.DataFrame(out).rename_axis("complex").reset_index()
+
+
 def make_within_complex_folds(dedup_df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
     """Reference split: v1 rows of every complex are shuffled and dealt over the folds.
 
