@@ -1,0 +1,19 @@
+model,loss,weighting,metric,value,lo,hi
+geometry (reference): ridge,huber,none,per_complex_spearman,0.44335906046588647,0.2857539633268458,0.5622920422774674
+geometry (reference): ridge,huber,none,pooled_pearson,0.45928059715351793,0.3871957652298066,0.5175555214471297
+geometry (reference): ridge,huber,none,rmse,1.3741216957714117,1.1079485591080198,1.676409843062157
+H1: geometry + side interactions: ridge,huber,none,per_complex_spearman,0.4263325936426292,0.27099950414780927,0.544420980643251
+H1: geometry + side interactions: ridge,huber,none,pooled_pearson,0.4396616270224735,0.363165983856982,0.4931348503082447
+H1: geometry + side interactions: ridge,huber,none,rmse,1.3903946389046207,1.1242171984558402,1.680874434705063
+H2a: geometry + environment: ridge,huber,none,per_complex_spearman,0.4141776159991791,0.24981767854771797,0.5403816149273833
+H2a: geometry + environment: ridge,huber,none,pooled_pearson,0.4762323074333331,0.4057107447447683,0.5274567854305124
+H2a: geometry + environment: ridge,huber,none,rmse,1.3577355171904977,1.0870978207846649,1.6619098889191957
+H2b: geometry + identity: ridge,huber,none,per_complex_spearman,0.42933310918625345,0.25801538782142835,0.5684095136085285
+H2b: geometry + identity: ridge,huber,none,pooled_pearson,0.36169460759961247,0.22351890826066514,0.523654351925629
+H2b: geometry + identity: ridge,huber,none,rmse,1.5029056811367272,1.1490883012237354,1.863235075596368
+H2c: geometry + environment + identity: ridge,huber,none,per_complex_spearman,0.4300462866990073,0.2531819925377606,0.566904759949358
+H2c: geometry + environment + identity: ridge,huber,none,pooled_pearson,0.37415087483484366,0.21635666903485218,0.5244173469764556
+H2c: geometry + environment + identity: ridge,huber,none,rmse,1.4849436659164332,1.1317704798894346,1.836963640738821
+H1+H2: all + side interactions: ridge,huber,none,per_complex_spearman,0.43468395508380675,0.23580023901521582,0.5772861409282098
+H1+H2: all + side interactions: ridge,huber,none,pooled_pearson,0.39598266060939763,0.24472624671821114,0.5468137705021666
+H1+H2: all + side interactions: ridge,huber,none,rmse,1.4640606147779316,1.1230315704718314,1.802328209972685

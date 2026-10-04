@@ -1,0 +1,7 @@
+model,param,grid,n,at_low,at_high,edge_share
+geometry (reference): ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,8,0,0.32
+H1: geometry + side interactions: ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,1,0,0.04
+H2a: geometry + environment: ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,11,0,0.44
+H2b: geometry + identity: ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,5,0,0.2
+H2c: geometry + environment + identity: ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,2,0,0.08
+H1+H2: all + side interactions: ridge,alpha,"[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]",25,0,0,0.0

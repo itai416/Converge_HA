@@ -1,0 +1,6 @@
+comparison,mean_diff,min,max,repeats_better
+H1+H2: all + side interactions: ridge  -  geometry (reference): ridge,-0.005,-0.009,-0.001,0/5
+H1: geometry + side interactions: ridge  -  geometry (reference): ridge,-0.009,-0.017,-0.006,0/5
+H2a: geometry + environment: ridge  -  geometry (reference): ridge,-0.018,-0.031,0.002,1/5
+H2b: geometry + identity: ridge  -  geometry (reference): ridge,0.01,-0.014,0.04,4/5
+H2c: geometry + environment + identity: ridge  -  geometry (reference): ridge,0.004,-0.013,0.033,2/5

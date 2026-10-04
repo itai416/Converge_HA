@@ -1,0 +1,512 @@
+{
+ "geometry (reference): ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 0.1
+  },
+  "2": {
+   "alpha": 0.1
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "geometry (reference): ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 0.01
+  },
+  "1": {
+   "alpha": 1.0
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 0.1
+  }
+ },
+ "geometry (reference): ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 0.1
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 1.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "geometry (reference): ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 0.01
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 0.1
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ },
+ "geometry (reference): ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 0.01
+  },
+  "4": {
+   "alpha": 0.1
+  }
+ },
+ "H1: geometry + side interactions: ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 0.1
+  },
+  "1": {
+   "alpha": 1.0
+  },
+  "2": {
+   "alpha": 0.1
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 1.0
+  }
+ },
+ "H1: geometry + side interactions: ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 1.0
+  },
+  "2": {
+   "alpha": 1.0
+  },
+  "3": {
+   "alpha": 1.0
+  },
+  "4": {
+   "alpha": 0.1
+  }
+ },
+ "H1: geometry + side interactions: ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 10.0
+  },
+  "1": {
+   "alpha": 1.0
+  },
+  "2": {
+   "alpha": 1.0
+  },
+  "3": {
+   "alpha": 1.0
+  },
+  "4": {
+   "alpha": 0.1
+  }
+ },
+ "H1: geometry + side interactions: ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 10.0
+  },
+  "1": {
+   "alpha": 1.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 0.01
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ },
+ "H1: geometry + side interactions: ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 1.0
+  }
+ },
+ "H2a: geometry + environment: ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 10.0
+  },
+  "1": {
+   "alpha": 0.01
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "H2a: geometry + environment: ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 0.1
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "H2a: geometry + environment: ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 0.01
+  },
+  "1": {
+   "alpha": 0.01
+  },
+  "2": {
+   "alpha": 0.1
+  },
+  "3": {
+   "alpha": 0.01
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "H2a: geometry + environment: ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 0.1
+  },
+  "2": {
+   "alpha": 0.1
+  },
+  "3": {
+   "alpha": 0.01
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ },
+ "H2a: geometry + environment: ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 0.01
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 1.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2b: geometry + identity: ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "H2b: geometry + identity: ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 1.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 1.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2b: geometry + identity: ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 0.01
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 0.1
+  },
+  "3": {
+   "alpha": 0.01
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2b: geometry + identity: ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 0.01
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ },
+ "H2b: geometry + identity: ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 0.01
+  }
+ },
+ "H2c: geometry + environment + identity: ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 10.0
+  },
+  "1": {
+   "alpha": 0.01
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2c: geometry + environment + identity: ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2c: geometry + environment + identity: ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 0.01
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2c: geometry + environment + identity: ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 1.0
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H2c: geometry + environment + identity: ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H1+H2: all + side interactions: ridge | huber | none | rep0 | None": {
+  "0": {
+   "alpha": 10.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ },
+ "H1+H2: all + side interactions: ridge | huber | none | rep1 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H1+H2: all + side interactions: ridge | huber | none | rep2 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 10.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H1+H2: all + side interactions: ridge | huber | none | rep3 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 100.0
+  },
+  "2": {
+   "alpha": 10.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 100.0
+  }
+ },
+ "H1+H2: all + side interactions: ridge | huber | none | rep4 | None": {
+  "0": {
+   "alpha": 100.0
+  },
+  "1": {
+   "alpha": 10.0
+  },
+  "2": {
+   "alpha": 100.0
+  },
+  "3": {
+   "alpha": 100.0
+  },
+  "4": {
+   "alpha": 10.0
+  }
+ }
+}

@@ -288,6 +288,41 @@ D LightGBM: 0.44 [0.29, 0.55].
 
 Not done yet: SHAP feature importance, structural case studies of the worst errors, and the calibration plot by bin.
 
+### 6.5 Targeted follow-up experiments (chosen from §6.4)
+Instead of running every remaining item in the plan, we picked four hypotheses that the results so far made most likely, and ran only those.
+Everything uses ridge (the best and fastest model), the same 5 fold assignments and paired comparisons.
+
+| # | Hypothesis | Result |
+|---|---|---|
+| 4 | Zero-shot ESM-2 650M has binding signal where 35M had none | **No.** Per-complex Spearman of the raw score is 0.07 (35M: 0.02); antibody side 0.13, antigen side 0.01. A full 650M ablation is therefore not justified. |
+| 3 | The worst errors are label noise or mapping errors | **Mostly no.** See below. |
+| 1 | Antibody-side mutations need side-specific effects (geometry × side interactions) | **No.** −0.009 per-complex Spearman vs geometry only, worse in 5/5 repeats. |
+| 2 | Richer 3D context helps: partner/chain environment features (new, [environment.py](src/features/environment.py)) and wild-type/mutant identity descriptors | **No consistent gain** (table below). |
+
+Hypothesis 2 on top of geometry-only ridge ([scripts/12_hypotheses.py](scripts/12_hypotheses.py), [results/hypotheses_geometry/](results/hypotheses_geometry/)):
+
+| Features | Per-complex Spearman | Pooled Pearson | RMSE | Paired vs geometry (repeats better) |
+|---|---|---|---|---|
+| geometry (reference) | 0.436 | 0.447 | 1.383 | – |
+| + side interactions (H1) | 0.427 | 0.438 | 1.392 | −0.009 (0/5) |
+| + environment | 0.418 | 0.468 | 1.366 | −0.018 (1/5) |
+| + identity | 0.446 | 0.369 | 1.487 | +0.010 (4/5, range −0.014 … +0.040) |
+| + environment + identity | 0.440 | 0.406 | 1.448 | +0.004 (2/5) |
+| everything + side interactions | 0.431 | 0.436 | 1.416 | −0.005 (0/5) |
+
+- Environment features improve the between-complex metrics (pooled Pearson +0.02, RMSE −0.02) but not within-complex ranking, which is the primary metric. Identity descriptors
+  help ranking slightly and inconsistently but hurt pooled Pearson and RMSE. We did not carry any variant to model C, since none cleared the bar of a consistent paired gain.
+- **Conclusion:** the hand-crafted geometry set is close to what this data supports for ranking with a low-capacity model. Per-feature correlations of the new features
+  with ΔΔG are up to 0.35 (partner aromatic residues), but they are largely redundant with burial and contact counts.
+
+**Hypothesis 3, the worst errors** (checked in the raw SKEMPI rows and the geometry features, not yet in a structure viewer):
+- 10 of the 12 are real hotspots that the model under-predicts, not noisy labels. The residues are fully buried (relative accessibility ≈ 0), in contact
+  with 8–26 partner atoms, 2.5–3.0 Å from the partner, and the mutant affinity sits at the assay's detection limit (µM). The model sees "buried contact residue" but predicts only +1.2 to +1.8
+  because the regression shrinks toward the mean (§6.4); the observed 6–7.4 values are also partly capped by the assay range.
+- **2VIS IC89T (observed −4.9):** the SKEMPI note says the crystal structure is one of the mutants, taken as the wild type. The structure and label disagree, so this row is a data problem.
+- **1JRH E45P (observed −3.8):** a mutation to proline at a mostly exposed site (relative accessibility 0.42); the backbone effect is not captured by any feature.
+- No censoring leak: all rows with a ">" affinity are already excluded from v1.
+
 ## 7. Training diagnostics
 The full report, covering what each check measured, why, the results and the actions taken, is in
 [reports/training_diagnostics.md](reports/training_diagnostics.md). The key points:
@@ -373,6 +408,8 @@ for the one function fair-esm uses.
 | convergence diagnostics (ablation) | `python scripts/diag_convergence.py` | ~3 min |
 | learning curve (750 fits) | `python scripts/07_learning_curve.py` | ~2 min |
 | ablation D/E (90 runs) | `python scripts/09_ablation_DE.py 35M 5 3` | ~13 h on 15 workers (much slower than A/B/C; cause not yet diagnosed) |
+| environment features | `python scripts/11_environment_features.py` | ~10 s |
+| targeted experiments (§6.5, 30 runs) | `python scripts/12_hypotheses.py geometry` | ~2 min |
 | error analysis | `python scripts/10_error_analysis.py` | seconds |
 | bundle for Colab | `python scripts/make_colab_bundle.py` → upload `colab_bundle.zip` to Drive | seconds |
 | ESM-2 650M + ESM-IF1 features | [notebooks/02_colab_embeddings.ipynb](notebooks/02_colab_embeddings.ipynb) on a Colab T4 GPU | ~15–20 min including installs |
@@ -381,12 +418,13 @@ for the one function fair-esm uses.
 Data: `data/skempi_v2.csv` and `data/SKEMPI2_PDBs/PDBs/` from the SKEMPI 2.0 website.
 
 ## 9. Limitations so far and next steps
-- **ESM-2 35M only in the ablations.** The 650M features exist (`esm2_650M.parquet`) but the ablation has not been rerun with them; this needs to be checked before concluding that sequence models add little.
+- **ESM-2 35M only in the ablations.** The zero-shot 650M score is also uninformative (§6.5), so we did not rerun the ablation, but a trained model on 650M embeddings was not tested.
 - **All features use the wild-type structure.** Conformational change on mutation is not modelled.
 - **Only 20 complexes support the per-complex metric.** CIs are about ±0.13, so only differences that are consistent across paired repeats are claimed.
 - **The antibody side** is assigned with a hand-written map from SKEMPI protein names, not by numbering the chains with ANARCI.
   CDR vs framework annotation is still missing.
 - **The geometry models are feature-limited, the sequence model data-limited** (§7.2). This sets the priorities: better structural features first,
   then transfer from non-antibody SKEMPI data for the sequence branch.
-- **Next:** SHAP and structural case studies for the error analysis, the 650M ablation, then the extensions
+- **Next:** SHAP on the final model and viewing the case studies in the structure; then the extensions. Transfer from non-antibody SKEMPI data is the only remaining idea
+  aimed at the data-limited sequence branch; the other §6.5 ideas did not pay off.
   (multi-point mutations, censored rows).
