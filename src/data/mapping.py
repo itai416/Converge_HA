@@ -45,3 +45,19 @@ def add_residue_mapping(df: pd.DataFrame) -> pd.DataFrame:
         df.loc[i, "wt_match"] = bool(hit) and hit[0] == wt
     df["wt_match"] = df["wt_match"].astype("boolean")
     return df
+
+
+def parse_sites(row) -> list:
+    """All sites of a (single- or multi-point) row as (chain, wt, mut, file residue number); None if any site cannot be located
+    or its wild-type residue disagrees with the structure."""
+    sites = []
+    for token in row["Mutation(s)_PDB"].split(","):
+        m = MUT.match(token)
+        if not m:
+            return None
+        wt, chain, resnum, mut = m.groups()
+        hit = read_mapping(row["complex"][:4]).get((chain, resnum.upper()))
+        if not hit or hit[0] != wt:
+            return None
+        sites.append((chain, wt, mut, hit[1]))
+    return sites

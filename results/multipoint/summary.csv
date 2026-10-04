@@ -1,0 +1,15 @@
+,,per_complex_spearman,per_complex_spearman,pooled_pearson,pooled_pearson,rmse,rmse
+,,mean,std,mean,std,mean,std
+test,model,,,,,,
+single-point test rows,singles only [sum pooling],0.46,0.017,0.457,0.028,1.379,0.019
+multi-point test rows,singles only [sum pooling],0.053,0.03,0.456,0.045,2.738,0.172
+single-point test rows,+ multi [sum pooling],0.385,0.031,0.404,0.023,1.417,0.021
+multi-point test rows,+ multi [sum pooling],0.09,0.048,0.518,0.071,1.99,0.114
+single-point test rows,"+ multi, 1/sqrt(n) [sum pooling]",0.396,0.032,0.393,0.03,1.437,0.023
+multi-point test rows,"+ multi, 1/sqrt(n) [sum pooling]",0.039,0.035,0.488,0.085,2.084,0.144
+single-point test rows,singles only [mean pooling],0.46,0.017,0.457,0.028,1.379,0.019
+multi-point test rows,singles only [mean pooling],0.119,0.046,0.53,0.037,2.128,0.011
+single-point test rows,+ multi [mean pooling],0.397,0.015,0.434,0.046,1.399,0.039
+multi-point test rows,+ multi [mean pooling],0.143,0.036,0.499,0.034,2.075,0.053
+single-point test rows,"+ multi, 1/sqrt(n) [mean pooling]",0.41,0.026,0.398,0.031,1.438,0.027
+multi-point test rows,"+ multi, 1/sqrt(n) [mean pooling]",0.082,0.045,0.438,0.067,2.184,0.06

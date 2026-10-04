@@ -1,0 +1,37 @@
+30 runs
+[Parallel(n_jobs=15)]: Using backend LokyBackend with 15 concurrent workers.
+[Parallel(n_jobs=15)]: Done   8 out of  30 | elapsed:  7.4min remaining: 20.3min
+[Parallel(n_jobs=15)]: Done  15 out of  30 | elapsed:  8.0min remaining:  8.0min
+[Parallel(n_jobs=15)]: Done  22 out of  30 | elapsed: 12.6min remaining:  4.6min
+[Parallel(n_jobs=15)]: Done  30 out of  30 | elapsed: 12.9min finished
+                                                         per_complex_spearman        pooled_pearson          rmse       
+                                                                         mean    std           mean    std   mean    std
+test                   model                                                                                            
+single-point test rows singles only [sum pooling]                       0.460  0.017          0.457  0.028  1.379  0.019
+multi-point test rows  singles only [sum pooling]                       0.053  0.030          0.456  0.045  2.738  0.172
+single-point test rows + multi [sum pooling]                            0.385  0.031          0.404  0.023  1.417  0.021
+multi-point test rows  + multi [sum pooling]                            0.090  0.048          0.518  0.071  1.990  0.114
+single-point test rows + multi, 1/sqrt(n) [sum pooling]                 0.396  0.032          0.393  0.030  1.437  0.023
+multi-point test rows  + multi, 1/sqrt(n) [sum pooling]                 0.039  0.035          0.488  0.085  2.084  0.144
+single-point test rows singles only [mean pooling]                      0.460  0.017          0.457  0.028  1.379  0.019
+multi-point test rows  singles only [mean pooling]                      0.119  0.046          0.530  0.037  2.128  0.011
+single-point test rows + multi [mean pooling]                           0.397  0.015          0.434  0.046  1.399  0.039
+multi-point test rows  + multi [mean pooling]                           0.143  0.036          0.499  0.034  2.075  0.053
+single-point test rows + multi, 1/sqrt(n) [mean pooling]                0.410  0.026          0.398  0.031  1.438  0.027
+multi-point test rows  + multi, 1/sqrt(n) [mean pooling]                0.082  0.045          0.438  0.067  2.184  0.060
+
+paired per-complex Spearman vs the singles-only model on identical rows/folds:
+                  test                             model  vs singles-only (sum)    min    max repeats_better
+ multi-point test rows            + multi [mean pooling]                  0.090  0.035  0.113            5/5
+ multi-point test rows             + multi [sum pooling]                  0.037 -0.024  0.098            3/5
+ multi-point test rows + multi, 1/sqrt(n) [mean pooling]                  0.029 -0.021  0.078            3/5
+ multi-point test rows  + multi, 1/sqrt(n) [sum pooling]                 -0.014 -0.081  0.053            2/5
+ multi-point test rows       singles only [mean pooling]                  0.066  0.045  0.096            5/5
+ multi-point test rows        singles only [sum pooling]                  0.000  0.000  0.000            0/5
+single-point test rows            + multi [mean pooling]                 -0.064 -0.100 -0.030            0/5
+single-point test rows             + multi [sum pooling]                 -0.075 -0.121 -0.031            0/5
+single-point test rows + multi, 1/sqrt(n) [mean pooling]                 -0.050 -0.093  0.003            1/5
+single-point test rows  + multi, 1/sqrt(n) [sum pooling]                 -0.064 -0.133 -0.024            0/5
+single-point test rows       singles only [mean pooling]                  0.000  0.000  0.000            0/5
+single-point test rows        singles only [sum pooling]                  0.000  0.000  0.000            0/5
+done in 781s

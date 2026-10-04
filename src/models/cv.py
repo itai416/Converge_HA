@@ -27,13 +27,18 @@ def _fit_predict(make, params, X, y, groups, w_scheme, tr, te):
     return m.predict(X.iloc[te])
 
 
-def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np.ndarray, w_scheme: str = "none"):
-    """Return out-of-fold predictions for every row and the chosen params per outer fold."""
+def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np.ndarray, w_scheme: str = "none",
+              train_mask=None):
+    """Return out-of-fold predictions for every row and the chosen params per outer fold.
+
+    train_mask (optional boolean array): only these rows may be used for training and tuning; every row is still predicted
+    when its fold is held out (used to train on single-point rows only and still score multi-point rows)."""
     y = np.asarray(y, float)
     pred, chosen = np.full(len(y), np.nan), {}
     configs = [dict(zip(grid, v)) for v in itertools.product(*grid.values())]
     for k in np.unique(outer):
-        tr, te = np.where(outer != k)[0], np.where(outer == k)[0]
+        ok = np.ones(len(y), bool) if train_mask is None else np.asarray(train_mask)
+        tr, te = np.where((outer != k) & ok)[0], np.where(outer == k)[0]
         best, best_score = configs[0], -np.inf
         if len(configs) > 1:
             inner = list(GroupKFold(N_INNER).split(tr, groups=groups.iloc[tr]))

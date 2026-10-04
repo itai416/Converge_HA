@@ -323,6 +323,29 @@ Hypothesis 2 on top of geometry-only ridge ([scripts/12_hypotheses.py](scripts/1
 - **1JRH E45P (observed −3.8):** a mutation to proline at a mostly exposed site (relative accessibility 0.42); the backbone effect is not captured by any feature.
 - No censoring leak: all rows with a ">" affinity are already excluded from v1.
 
+### 6.6 Adding multi-point rows to the training set
+First of the "more data" experiments ([scripts/13_multipoint_features.py](scripts/13_multipoint_features.py),
+[scripts/14_multipoint_experiment.py](scripts/14_multipoint_experiment.py), [results/multipoint/](results/multipoint/)). We added the 272 uncensored multi-point rows
+(30 complexes, 7 of them with no single-point rows; all 1,058 sites located and featurised) to the 668 single-point rows. Per-site features of model C are pooled over the
+sites of a mutation set (sum, so that a linear model is additive over sites, or mean). Same folds and C ridge as before; test rows are scored separately.
+
+| Training set | Pooling | Single-point test rows: per-complex Spearman | Paired vs singles-only | Multi-point test rows: per-complex Spearman |
+|---|---|---|---|---|
+| singles only (= C) | sum | **0.460** | – | 0.053 (additivity baseline) |
+| singles only | mean | 0.460 | – | 0.119 |
+| + multi | sum | 0.385 | −0.075 (0/5 repeats) | 0.090 |
+| + multi | mean | 0.397 | −0.064 (0/5) | 0.143 |
+| + multi, 1/√n complex weights | sum | 0.396 | −0.064 (0/5) | 0.039 |
+| + multi, 1/√n complex weights | mean | 0.410 | −0.050 (1/5) | 0.082 |
+
+1. **Adding the multi-point rows hurt single-point ranking in 23 of 24 paired comparisons (−0.05 to −0.075).** Complex weighting reduces but does not remove the harm, so the imbalance
+   (86 rows from one complex) is not the whole story.
+2. **Multi-point ΔΔG is hard to predict from per-site features**: per-complex Spearman 0.05–0.14 and RMSE 2.0–2.7 kcal/mol (vs 1.38 for single-point).
+   The sites interact (and many large sets are combinations of hotspot residues), and our per-site features cannot see that.
+3. Mean pooling beats sum pooling on multi-point rows (0.119 vs 0.053 for the singles-only model), i.e. strict additivity over-predicts large sets.
+4. **Conclusion:** naively mixing multi-point rows into the training set does not improve C. They stay a separate extension; untested remedies are an `is_multi` indicator, a small
+   sample weight for multi rows, and a model of the interaction between sites.
+
 ## 7. Training diagnostics
 The full report, covering what each check measured, why, the results and the actions taken, is in
 [reports/training_diagnostics.md](reports/training_diagnostics.md). The key points:
@@ -410,6 +433,8 @@ for the one function fair-esm uses.
 | ablation D/E (90 runs) | `python scripts/09_ablation_DE.py 35M 5 3` | ~13 h on 15 workers (much slower than A/B/C; cause not yet diagnosed) |
 | environment features | `python scripts/11_environment_features.py` | ~10 s |
 | targeted experiments (§6.5, 30 runs) | `python scripts/12_hypotheses.py geometry` | ~2 min |
+| multi-point features (§6.6) | `python scripts/13_multipoint_features.py` | ~5 min |
+| multi-point experiment (30 runs) | `python scripts/14_multipoint_experiment.py` | ~13 min on 15 workers |
 | error analysis | `python scripts/10_error_analysis.py` | seconds |
 | bundle for Colab | `python scripts/make_colab_bundle.py` → upload `colab_bundle.zip` to Drive | seconds |
 | ESM-2 650M + ESM-IF1 features | [notebooks/02_colab_embeddings.ipynb](notebooks/02_colab_embeddings.ipynb) on a Colab T4 GPU | ~15–20 min including installs |
