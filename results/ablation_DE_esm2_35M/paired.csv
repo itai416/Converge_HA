@@ -1,0 +1,7 @@
+comparison,mean_diff,min,max,repeats_better
+D: augmented ridge  -  C: augmented ridge,0.001,-0.009,0.014,2/5
+D: LightGBM  -  C: LightGBM,0.012,-0.003,0.018,4/5
+E: augmented ridge  -  D: augmented ridge,0.005,-0.033,0.039,3/5
+E: LightGBM  -  D: LightGBM,-0.002,-0.025,0.007,3/5
+structure (geometry + ESM-IF1 scores): ridge  -  geometry only: ridge,0.003,-0.008,0.008,4/5
+D: augmented ridge  -  structure (geometry + ESM-IF1 scores): ridge,0.022,0.008,0.047,5/5

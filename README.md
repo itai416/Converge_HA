@@ -1,7 +1,7 @@
 # Predicting antibody–antigen ΔΔG from sequence and structure (SKEMPI 2.0, AB/AG subset)
 
 Converge Bio ML Researcher home assignment. **Work in progress:** stages 1–3 (data, EDA, split) are done,
-stage 4 (features) is partly done, and the ablation ladder has reached step C (§6.2). The full plan is in [PLAN.md](PLAN.md).
+stage 4 (features) is done for ESM-2 35M and ESM-IF1, and the ablation ladder is complete up to rung E (§6.2–6.3). Error analysis is in §6.4. The full plan is in [PLAN.md](PLAN.md).
 
 **Task.** Predict ΔΔG = RT·ln(Kd_mut / Kd_wt) in kcal/mol (positive = the mutation weakens binding) for a mutation in
 an antibody–antigen complex, from the protein sequence and the 3D structure of the wild-type complex.
@@ -48,8 +48,8 @@ Figures are in [results/eda/](results/eda/).
 - **Why grouped.** Mutations of the same complex are strongly correlated (the complex alone explains 26% of the variance). A random split would let the
   model memorise each complex's offset and overstate performance. So **no complex appears in both train and test**.
 - **Why stratified by antigen.** It keeps the antigen mix similar across folds. Lysozyme (13 complexes) is spread over all folds. This matches the
-  "known antigen, new antibody" use case. A test complex whose antigen also appears in training is tagged *seen antigen*. Most antigens have only
-  one complex, so many test complexes are effectively *unseen antigen*. We will report the two groups separately.
+  "known antigen, new antibody" use case. A test complex whose antigen also appears in training is tagged *seen antigen*. Because lysozyme, gp120, integrin and others
+  have several complexes, 36 of the 46 complexes (504 rows) are *seen* and 10 (164 rows) are *unseen*. We report the two groups separately (§6.4).
 - **Repeated CV.** One partition of 46 complexes into 5 folds is a single draw, and results move noticeably with it. Every experiment is
   therefore run on **5 different fold assignments**, chosen as the 5 most size-balanced seeds (their mutual adjusted Rand index is about 0, so
   they really are different). LightGBM also runs with **3 seeds**. Repeat 0 is the saved split in `data/processed/folds.csv`.
@@ -160,8 +160,8 @@ information helps. Each rung adds one thing, all on the same folds:
 | B | A + distance to partner | Is "where" enough? | done (§6.2) |
 | C | A + all geometry features (burial, contacts, H-bonds, ...) | Do richer hand-crafted 3D features help? | done (§6.2) |
 | geometry only | geometry, no sequence model | the "structure only" arm of the modality ablation | done (§6.2) |
-| D | C + ESM-IF1 scores (with / without partner) | Does a learned structure model add anything beyond geometry? | features: [08_esmif1.py](scripts/08_esmif1.py) / Colab notebook |
-| E | D + compressed ESM-IF1 embedding | Do high-dimensional structure features help or overfit? | planned |
+| D | C + ESM-IF1 scores (with / without partner) | Does a learned structure model add anything beyond geometry? | done (§6.3); features: [08_esmif1.py](scripts/08_esmif1.py) / Colab notebook |
+| E | D + ESM-IF1 embedding | Do high-dimensional structure features help or overfit? | done (§6.3) |
 
 Geometry features ([src/features/geometry.py](src/features/geometry.py)) are computed on the wild-type complex. The partner is the antigen when
 an antibody residue is mutated, and vice versa. Single-feature Spearman with ΔΔG: partner atoms within 4.5 Å 0.45, distance to partner −0.43,
@@ -235,6 +235,58 @@ Paired per-complex Spearman differences on identical folds ([paired.csv](results
 4. **With geometry, ridge catches up with LightGBM** (0.46 vs 0.43; ridge better in 4/5 repeats). The geometry features relate to ΔΔG roughly
    monotonically, so the non-linearity LightGBM needed for sequence-only A matters less. Once geometry is added, C needs far fewer boosting rounds
    than A (see §7).
+
+### 6.3 Ablation C → D → E (ESM-IF1)
+Same protocol as §6.2 ([scripts/09_ablation_DE.py](scripts/09_ablation_DE.py), ESM-2 35M; results in [results/ablation_DE_esm2_35M/](results/ablation_DE_esm2_35M/)). Mean ± std over runs.
+
+| Model | Per-complex Spearman ↑ | Pooled Pearson ↑ | RMSE ↓ |
+|---|---|---|---|
+| zero-shot ESM-IF1 interface score (calibrated) | 0.09 | −0.05 | 1.59 |
+| geometry only: ridge | 0.44 ± 0.01 | 0.45 ± 0.01 | 1.38 |
+| structure (geometry + ESM-IF1 scores): ridge | 0.44 ± 0.01 | 0.43 ± 0.02 | 1.40 |
+| C: augmented ridge | 0.46 ± 0.02 | 0.46 ± 0.03 | 1.38 |
+| D: augmented ridge | 0.46 ± 0.02 | 0.44 ± 0.03 | 1.39 |
+| E: augmented ridge | 0.47 ± 0.02 | 0.44 ± 0.02 | 1.39 |
+| C: LightGBM | 0.43 ± 0.02 | 0.46 ± 0.03 | 1.37 |
+| D: LightGBM | 0.44 ± 0.02 | 0.46 ± 0.02 | 1.37 |
+| E: LightGBM | 0.43 ± 0.02 | 0.45 ± 0.02 | 1.38 |
+
+Paired differences (per-complex Spearman, same folds): D − C is +0.001 (ridge, better in 2/5 repeats) and +0.012 (LightGBM, 4/5);
+E − D is +0.005 (3/5) and −0.002 (3/5); structure scores added to geometry give +0.003 (4/5).
+
+1. **ESM-IF1 adds essentially nothing beyond hand-crafted geometry.** The gains are within noise and not consistent across repeats. The same holds when
+   ESM-IF1 is the only learned structure component.
+2. **The zero-shot interface score is weak** (Spearman 0.09 per complex), far below any single geometry feature (about 0.4).
+3. **The high-dimensional ESM-IF1 embedding (E) does not help**, in line with the small-data argument in §4.3.
+4. So the conclusion of §6.2 stands: structure carries most of the signal, via cheap geometry. The ESM-2 650M comparison is still open (§9).
+
+### 6.4 Stratified results and error analysis
+[scripts/10_error_analysis.py](scripts/10_error_analysis.py) on the out-of-fold predictions of the primary split; tables and figure in
+[results/error_analysis/](results/error_analysis/). C ridge: per-complex Spearman 0.48 (95% CI over complexes [0.35, 0.58]), pooled Pearson 0.49, RMSE 1.36.
+D LightGBM: 0.44 [0.29, 0.55].
+
+| Stratum (C ridge) | Rows | Complexes with ≥10 rows | Per-complex Spearman |
+|---|---|---|---|
+| seen antigen | 504 | 14 | 0.49 |
+| unseen antigen | 164 | 6 | 0.47 |
+| antibody-side mutations | 385 | 14 | 0.35 |
+| antigen-side mutations | 283 | 10 | 0.60 |
+| to Ala | 364 | 13 | 0.57 |
+| other substitutions | 304 | 9 | 0.41 |
+| location COR / SUP / SUR / RIM | 281 / 115 / 79 / 162 | 11 / 2 / 3 / 5 | 0.43 / 0.40 / 0.27 / 0.18 |
+
+1. **Seen vs unseen antigen:** ridge is almost unchanged (0.49 vs 0.47), LightGBM drops (0.47 → 0.35). With 6 evaluable unseen complexes this is suggestive only; the linear
+   geometry model looks more transferable than the tree model.
+2. **Antibody-side mutations are ranked much worse than antigen-side ones** (0.35 vs 0.60), although they are 58% of the rows. This is the clearest target for improvement
+   (CDR/framework annotation, an antibody-specific model such as AbLang2 or AntiFold). RIM mutations are the hardest location class.
+3. **Strong regression toward the mean.** Mutations with ΔΔG > 2 (125 rows) have mean observed 3.45 and mean predicted 1.37. The 49 improving mutations (< −0.5) have mean
+   observed −1.25 and mean predicted +0.60, so the model cannot find improving mutations.
+4. **The worst errors are large hotspots or large improving mutations.** Seven of the 12 largest errors are in 3HFM (lysozyme, K96/K97 and Y50 / N31 hotspots, observed 5.7–7.3),
+   and the two BoNT_A1 H1036A rows (observed 7.3–7.4) are the largest. None of these has repeated measurements, so label noise cannot be excluded.
+   They have not yet been checked against the structures.
+5. Per-complex Spearman is 0.4–0.8 for most complexes with ≥10 rows. The exceptions are 1MLC (−0.45, 11 rows) and 2BDN (0.19, 12 rows).
+
+Not done yet: SHAP feature importance, structural case studies of the worst errors, and the calibration plot by bin.
 
 ## 7. Training diagnostics
 The full report, covering what each check measured, why, the results and the actions taken, is in
@@ -320,6 +372,8 @@ for the one function fair-esm uses.
 | training curves (model A, loss × weighting) | `python scripts/diag_training_curves.py` | ~2 min |
 | convergence diagnostics (ablation) | `python scripts/diag_convergence.py` | ~3 min |
 | learning curve (750 fits) | `python scripts/07_learning_curve.py` | ~2 min |
+| ablation D/E (90 runs) | `python scripts/09_ablation_DE.py 35M 5 3` | ~13 h on 15 workers (much slower than A/B/C; cause not yet diagnosed) |
+| error analysis | `python scripts/10_error_analysis.py` | seconds |
 | bundle for Colab | `python scripts/make_colab_bundle.py` → upload `colab_bundle.zip` to Drive | seconds |
 | ESM-2 650M + ESM-IF1 features | [notebooks/02_colab_embeddings.ipynb](notebooks/02_colab_embeddings.ipynb) on a Colab T4 GPU | ~15–20 min including installs |
 | ESM-IF1 features without a GPU | `python scripts/08_esmif1.py` (needs fair-esm, torch_geometric, biotite; checkpoints every 25 mutations, rerun to resume) | ~2.5 h on CPU |
@@ -327,12 +381,12 @@ for the one function fair-esm uses.
 Data: `data/skempi_v2.csv` and `data/SKEMPI2_PDBs/PDBs/` from the SKEMPI 2.0 website.
 
 ## 9. Limitations so far and next steps
-- **ESM-2 35M only.** The 650M model (Colab) may give a usable zero-shot score; this needs to be checked before concluding that sequence models don't help.
+- **ESM-2 35M only in the ablations.** The 650M features exist (`esm2_650M.parquet`) but the ablation has not been rerun with them; this needs to be checked before concluding that sequence models add little.
 - **All features use the wild-type structure.** Conformational change on mutation is not modelled.
 - **Only 20 complexes support the per-complex metric.** CIs are about ±0.13, so only differences that are consistent across paired repeats are claimed.
 - **The antibody side** is assigned with a hand-written map from SKEMPI protein names, not by numbering the chains with ANARCI.
   CDR vs framework annotation is still missing.
 - **The geometry models are feature-limited, the sequence model data-limited** (§7.2). This sets the priorities: better structural features first,
   then transfer from non-antibody SKEMPI data for the sequence branch.
-- **Next:** ESM-2 650M and ESM-IF1 features on Colab (models D/E), seen- vs unseen-antigen breakdown, error analysis, then the extensions
+- **Next:** SHAP and structural case studies for the error analysis, the 650M ablation, then the extensions
   (multi-point mutations, censored rows).
