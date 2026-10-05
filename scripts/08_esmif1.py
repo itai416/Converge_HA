@@ -18,9 +18,9 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from src.data.io import KEY, PROCESSED, is_v1, load_dedup  # noqa: E402
 from src.features.inverse_folding import ESMIF1  # noqa: E402
 
-KEY = ["complex", "Mutation(s)_cleaned"]
 CHECKPOINT_EVERY = 25
 
 
@@ -30,12 +30,12 @@ def main():
     args = ap.parse_args()
 
     t0 = time.time()
-    dd = pd.read_parquet(ROOT / "data" / "processed" / "skempi_abag_dedup.parquet")
-    v1 = dd[~dd["censored"] & (dd["n_mut"] == 1)].reset_index(drop=True)
+    dd = load_dedup()
+    v1 = dd[is_v1(dd)].reset_index(drop=True)
     if args.limit:
         v1 = v1.head(args.limit)
     model = ESMIF1()
-    path = ROOT / "data" / "processed" / ("esmif1.parquet" if not args.limit else f"esmif1_test{args.limit}.parquet")
+    path = PROCESSED / ("esmif1.parquet" if not args.limit else f"esmif1_test{args.limit}.parquet")
     ckpt = path.with_suffix(".partial.pkl")
     done = pickle.loads(ckpt.read_bytes()) if ckpt.exists() else {}  # (complex, mutation) -> (features, emb_c, emb_u)
     print(f"ESM-IF1 on {model.device}, {len(v1)} mutations, {len(done)} already done (resuming)", flush=True)

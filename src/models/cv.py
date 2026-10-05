@@ -21,6 +21,11 @@ def complex_weights(complexes: pd.Series, scheme: str) -> np.ndarray:
     return 1.0 / np.sqrt(complexes.map(complexes.value_counts()).values)
 
 
+def expand_grid(grid: dict) -> list:
+    """Every configuration of a tuning grid ([{}] for an empty grid)."""
+    return [dict(zip(grid, v)) for v in itertools.product(*grid.values())]
+
+
 def _fit_predict(make, params, X, y, groups, w_scheme, tr, te):
     m = make(**params)
     m.fit(X.iloc[tr], y[tr], sample_weight=complex_weights(groups.iloc[tr], w_scheme))
@@ -37,10 +42,12 @@ def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np
     censored rows can train a model without influencing which configuration is chosen)."""
     y = np.asarray(y, float)
     pred, chosen = np.full(len(y), np.nan), {}
-    configs = [dict(zip(grid, v)) for v in itertools.product(*grid.values())]
+    configs = expand_grid(grid)
+    ok = np.ones(len(y), bool) if train_mask is None else np.asarray(train_mask)
+    scored = np.ones(len(y), bool) if score_mask is None else np.asarray(score_mask)
     for k in np.unique(outer):
-        ok = np.ones(len(y), bool) if train_mask is None else np.asarray(train_mask)
         tr, te = np.where((outer != k) & ok)[0], np.where(outer == k)[0]
+        sm = scored[tr]
         best, best_score = configs[0], -np.inf
         if len(configs) > 1:
             inner = list(GroupKFold(N_INNER).split(tr, groups=groups.iloc[tr]))
@@ -48,7 +55,6 @@ def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np
                 oof = np.empty(len(tr))
                 for itr, ite in inner:
                     oof[ite] = _fit_predict(make, params, X, y, groups, w_scheme, tr[itr], tr[ite])
-                sm = np.ones(len(tr), bool) if score_mask is None else np.asarray(score_mask)[tr]
                 score = spearmanr(oof[sm], y[tr][sm])[0]
                 if np.isfinite(score) and score > best_score:
                     best, best_score = params, score

@@ -1,13 +1,11 @@
 """Step 1 of Stage 1: filter SKEMPI 2.0 to AB/AG rows and build the label columns."""
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 
 from src.data.antigen_groups import ANTIGEN_GROUP
+from src.data.io import ROOT
 from src.data.mapping import add_residue_mapping
 
-ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "data" / "skempi_v2.csv"
 R = 0.0019872041  # kcal / (mol K)
 DEFAULT_T = 298.0

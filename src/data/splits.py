@@ -11,12 +11,10 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold, StratifiedGroupKFold
 
+from src.data.io import KEY, is_v1
+
 N_FOLDS = 5
 warnings.filterwarnings("ignore", message="The least populated class")
-
-
-def _is_v1(df):
-    return ~df["censored"] & (df["n_mut"] == 1)
 
 
 def _complex_folds(v1, seed):
@@ -27,6 +25,18 @@ def _complex_folds(v1, seed):
     return v1.assign(fold=fold).groupby("complex")["fold"].first()
 
 
+def _fold_sizes(fold, cx):
+    """v1 rows per fold, given a complex -> fold series and the v1 rows per complex."""
+    return np.bincount(fold.values, weights=cx[fold.index].values, minlength=N_FOLDS)
+
+
+def _ranked_folds(v1, n_seeds):
+    """(seed, complex -> fold) for every seed, most even fold sizes first."""
+    cx = v1.groupby("complex").size()
+    cands = [(s, _complex_folds(v1, s)) for s in range(n_seeds)]
+    return sorted(cands, key=lambda t: (_fold_sizes(t[1], cx).std(), t[0]))
+
+
 def make_folds(dedup_df: pd.DataFrame, n_seeds: int = 200) -> tuple[pd.DataFrame, int]:
     """Return one row per complex with its folds, plus the chosen seed.
 
@@ -34,20 +44,14 @@ def make_folds(dedup_df: pd.DataFrame, n_seeds: int = 200) -> tuple[pd.DataFrame
     Complexes with no v1 rows get the fold of another complex of the same antigen, else the
     currently smallest fold, so every complex has a fold for the later extensions.
     """
-    v1 = dedup_df[_is_v1(dedup_df)].reset_index(drop=True)
+    v1 = dedup_df[is_v1(dedup_df)].reset_index(drop=True)
     cx = v1.groupby("complex").size()
-
-    def imbalance(seed):
-        f = _complex_folds(v1, seed)
-        return np.bincount(f.values, weights=cx[f.index].values, minlength=N_FOLDS).std()
-
-    seed = min(range(n_seeds), key=imbalance)
-    by_complex = _complex_folds(v1, seed)
+    seed, by_complex = _ranked_folds(v1, n_seeds)[0]
 
     info = dedup_df.groupby("complex").agg(antigen_group=("antigen_group", "first")).reset_index()
     info["n_v1"] = info["complex"].map(cx).fillna(0).astype(int)
     info["fold_complex"] = info["complex"].map(by_complex)
-    sizes = np.bincount(by_complex.values, weights=cx[by_complex.index].values, minlength=N_FOLDS)
+    sizes = _fold_sizes(by_complex, cx)
     for i in info.index[info["fold_complex"].isna()]:
         same = info[(info["antigen_group"] == info.at[i, "antigen_group"]) & info["fold_complex"].notna()]
         info.at[i, "fold_complex"] = same["fold_complex"].iloc[0] if len(same) else int(sizes.argmin())
@@ -74,16 +78,9 @@ def repeated_complex_folds(dedup_df: pd.DataFrame, n_repeats: int = 5, n_seeds: 
     Repeat 0 is the seed used by `make_folds` (folds.csv); repeats with an identical partition are skipped.
     Returns one row per complex with v1 rows and columns rep0..rep{n-1}.
     """
-    v1 = dedup_df[_is_v1(dedup_df)].reset_index(drop=True)
-    cx = v1.groupby("complex").size()
-
-    def imbalance(f):
-        return np.bincount(f.values, weights=cx[f.index].values, minlength=N_FOLDS).std()
-
-    cands = sorted(((imbalance(f), s, f) for s in range(n_seeds) for f in [_complex_folds(v1, s)]),
-                   key=lambda t: (t[0], t[1]))
+    v1 = dedup_df[is_v1(dedup_df)].reset_index(drop=True)
     out, seen = {}, set()
-    for _, s, f in cands:
+    for _, f in _ranked_folds(v1, n_seeds):
         part = frozenset(frozenset(f.index[f == k]) for k in range(N_FOLDS))
         if part not in seen:
             seen.add(part)
@@ -101,7 +98,7 @@ def make_within_complex_folds(dedup_df: pd.DataFrame, seed: int = 42) -> pd.Data
     Repeats were already averaged, so the same (complex, mutation) is never on both sides.
     A running counter carries over between complexes so small ones do not all fill fold 0 first.
     """
-    v1 = dedup_df[_is_v1(dedup_df)][["complex", "Mutation(s)_cleaned"]].reset_index(drop=True)
+    v1 = dedup_df[is_v1(dedup_df)][KEY].reset_index(drop=True)
     rng = np.random.default_rng(seed)
     v1 = v1.iloc[rng.permutation(len(v1))].sort_values("complex", kind="stable")
     v1["fold_within"] = np.arange(len(v1)) % N_FOLDS

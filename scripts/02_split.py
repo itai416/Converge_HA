@@ -6,10 +6,11 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from src.data.io import KEY, PROCESSED, is_v1, load_dedup  # noqa: E402
 from src.data.splits import make_folds, make_within_complex_folds  # noqa: E402
 
-OUT = ROOT / "data" / "processed" / "folds.csv"
-OUT_WITHIN = ROOT / "data" / "processed" / "folds_within_complex.csv"
+OUT = PROCESSED / "folds.csv"
+OUT_WITHIN = PROCESSED / "folds_within_complex.csv"
 
 
 def report(v1, info, col):
@@ -24,10 +25,10 @@ def report(v1, info, col):
 
 
 def main():
-    dd = pd.read_parquet(ROOT / "data" / "processed" / "skempi_abag_dedup.parquet")
+    dd = load_dedup()
     info, seed = make_folds(dd)
     info.to_csv(OUT, index=False)
-    v1 = dd[~dd["censored"] & (dd["n_mut"] == 1)]
+    v1 = dd[is_v1(dd)]
     print(f"seed {seed}, {len(info)} complexes, {len(v1)} v1 rows, saved to {OUT}")
     report(v1, info, "fold_complex")
     report(v1, info, "fold_antigen")
@@ -39,7 +40,7 @@ def main():
 
     w = make_within_complex_folds(dd)
     w.to_csv(OUT_WITHIN, index=False)
-    t = v1.merge(w, on=["complex", "Mutation(s)_cleaned"])
+    t = v1.merge(w, on=KEY)
     assert len(t) == len(v1)
     g = t.groupby("fold_within")
     print(f"\nfold_within (saved to {OUT_WITHIN})")

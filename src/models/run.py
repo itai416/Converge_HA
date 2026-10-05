@@ -9,8 +9,11 @@ Outputs in out_dir:
   metrics_rep0.csv      repeat 0 (= folds.csv), seed-averaged predictions, 95% bootstrap CI over complexes
   oof_rep0.parquet      those repeat-0 out-of-fold predictions
   chosen_params.json    hyperparameters picked by the inner CV in every outer fold of every run
+  grid_edges.csv        how often the inner CV picked the lowest / highest value of a tuning grid
+  paired.csv            (if `pairs` is given) per-repeat differences in per-complex Spearman between pairs of models
 """
 import inspect
+import itertools
 import json
 import time
 
@@ -18,11 +21,14 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
-from src.eval.metrics import bootstrap, metrics
+from src.data.io import KEY
+from src.eval.metrics import bootstrap, metrics, paired_table
 from src.models.cv import nested_cv
+from src.models.regressors import MeanBaseline
 
 LOSSES = ["huber", "mse"]
 WEIGHTINGS = ["none", "sqrt"]
+N_JOBS = 15  # parallel CV jobs, each on one thread
 
 
 def _job(cls, fixed, grid, X, y, groups, outer, loss, w, seed):
@@ -31,9 +37,11 @@ def _job(cls, fixed, grid, X, y, groups, outer, loss, w, seed):
     return nested_cv(make, grid, X, y, groups, outer, w_scheme=w)
 
 
-def run_experiments(experiments: dict, df: pd.DataFrame, rep_folds: pd.DataFrame, out_dir, n_seeds=3, n_jobs=15,
-                    losses=LOSSES, weightings=WEIGHTINGS):
-    """df: one row per mutation with complex, ddG; rep_folds: complex -> rep0..repN fold columns."""
+def run_experiments(experiments: dict, df: pd.DataFrame, rep_folds: pd.DataFrame, out_dir, n_seeds=3, n_jobs=N_JOBS,
+                    losses=LOSSES, weightings=WEIGHTINGS, pairs=None):
+    """df: one row per mutation with complex, ddG; rep_folds: complex -> rep0..repN fold columns.
+
+    pairs: {label: (model, reference model)} for paired.csv. Prints and returns the summary table."""
     t0 = time.time()
     out_dir.mkdir(parents=True, exist_ok=True)
     reps = [c for c in rep_folds.columns if c.startswith("rep")]
@@ -44,13 +52,9 @@ def run_experiments(experiments: dict, df: pd.DataFrame, rep_folds: pd.DataFrame
     tasks = []
     for name, (cls, fixed, grid, X) in experiments.items():
         seeds = range(n_seeds) if "seed" in inspect.signature(cls.__init__).parameters else [None]
-        for loss in losses:
-            if cls.__name__ == "MeanBaseline" and loss != losses[0]:
-                continue  # the mean does not depend on the loss
-            for w in weightings:
-                for r in reps:
-                    for s in seeds:
-                        tasks.append(((name, loss, w, r, s), (cls, fixed, grid, X, y, groups, folds[r].values, loss, w, s)))
+        cls_losses = losses[:1] if cls is MeanBaseline else losses  # the mean does not depend on the loss
+        for loss, w, r, s in itertools.product(cls_losses, weightings, reps, seeds):
+            tasks.append(((name, loss, w, r, s), (cls, fixed, grid, X, y, groups, folds[r].values, loss, w, s)))
     print(f"{len(tasks)} runs ({len(reps)} repeats, {n_seeds} seeds for seeded models) on {n_jobs} workers", flush=True)
     results = Parallel(n_jobs=n_jobs, verbose=5)(delayed(_job)(*a) for _, a in tasks)
 
@@ -66,13 +70,12 @@ def run_experiments(experiments: dict, df: pd.DataFrame, rep_folds: pd.DataFrame
     runs = pd.DataFrame(runs)
     runs.to_csv(out_dir / "runs.csv", index=False)
 
-    cfg = ["model", "loss", "weighting"]
-    summary = runs.groupby(cfg, sort=False)[["per_complex_spearman", "pooled_pearson", "rmse"]].agg(
-        ["mean", "std", "min", "max"])
-    summary["n_runs"] = runs.groupby(cfg, sort=False).size()
+    by_cfg = runs.groupby(["model", "loss", "weighting"], sort=False)
+    summary = by_cfg[["per_complex_spearman", "pooled_pearson", "rmse"]].agg(["mean", "std", "min", "max"])
+    summary["n_runs"] = by_cfg.size()
     summary.round(4).to_csv(out_dir / "summary.csv")
 
-    ci_rows, oof = [], df[["complex", "Mutation(s)_cleaned", "ddG"]].copy()
+    ci_rows, oof = [], df[KEY + ["ddG"]].copy()
     for (name, loss, w), preds in rep0.items():
         p = np.mean(preds, axis=0)  # average over seeds
         oof[f"{name} | {loss} | w={w}"] = p
@@ -88,6 +91,12 @@ def run_experiments(experiments: dict, df: pd.DataFrame, rep_folds: pd.DataFrame
         print("WARNING: hyperparameters chosen at a grid edge in >= 50% of folds (optimum may lie outside the grid):\n"
               + flagged.to_string(index=False), flush=True)
     print(f"done in {time.time() - t0:.0f}s -> {out_dir}", flush=True)
+    pd.set_option("display.width", 250)
+    print(summary.round(3).to_string())
+    if pairs:
+        p = paired_table(runs, pairs)
+        p.to_csv(out_dir / "paired.csv", index=False)
+        print("\npaired per-complex Spearman differences (same folds):\n" + p.to_string(index=False))
     return summary
 
 

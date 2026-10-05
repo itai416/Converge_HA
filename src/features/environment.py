@@ -6,7 +6,7 @@ side-chain centre, and the packing and charge of the residue's own chain around 
 import numpy as np
 from Bio.PDB import NeighborSearch
 
-from src.features.geometry import CHARGE, KD, VOLUME, _structure, antibody_chains
+from src.features.geometry import CHARGE, KD, VOLUME, heavy, partner_search, site
 
 HYDROPHOBIC = {"ALA", "VAL", "ILE", "LEU", "MET", "PHE", "TRP", "CYS"}
 AROMATIC = {"PHE", "TRP", "TYR", "HIS"}
@@ -20,10 +20,7 @@ def _centre(res):
 
 
 def residue_environment(complex_id, chain, resnum, wt, mut):
-    model = _structure(complex_id[:4])
-    ab, ag = antibody_chains(complex_id)
-    partner = set(ag if chain in ab else ab)
-    res = next(r for r in model[chain] if r.id[1] == resnum and r.id[0] == " ")
+    model, res, partner = site(complex_id, chain, resnum)
     centre = _centre(res)
     residues = [r for c in model for r in c if r.id[0] == " " and "CA" in r]
     atoms = [a for r in residues for a in r if a.element != "H"]
@@ -35,9 +32,8 @@ def residue_environment(complex_id, chain, resnum, wt, mut):
     same8 = [r for r in near8 if r.get_parent().id == chain and r is not res]
     names = [r.get_resname() for r in part]
     # fraction of side-chain heavy atoms (beyond the backbone N, CA, C, O) within 4.5 A of a partner atom
-    p_atoms = [a for c in partner if c in model for a in model[c].get_atoms() if a.element != "H"]
-    pns = NeighborSearch(p_atoms)
-    side = [a for a in res if a.element != "H" and a.get_id() not in ("N", "CA", "C", "O")] or [res["CA"]]
+    pns = partner_search(model, partner)
+    side = [a for a in heavy(res) if a.get_id() not in ("N", "CA", "C", "O")] or [res["CA"]]
     sc_contact = np.mean([bool(pns.search(a.coord, 4.5)) for a in side])
     f = {"env_partner_res_8": len(part),
          "env_partner_pos": sum(n in POS for n in names), "env_partner_neg": sum(n in NEG for n in names),

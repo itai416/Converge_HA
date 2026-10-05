@@ -64,35 +64,47 @@ def _sasa_tables(complex_id):
     return _res_sasa(model, ab + ag), _res_sasa(model, ab), _res_sasa(model, ag)
 
 
-def residue_features(complex_id, chain, resnum, wt, mut):
+def heavy(res):
+    return [a for a in res if a.element != "H"]
+
+
+def site(complex_id, chain, resnum):
+    """(model, mutated residue, chain ids of the binding partner) in the wild-type complex."""
     model = _structure(complex_id[:4])
     ab, ag = antibody_chains(complex_id)
-    on_ab = chain in ab
     res = next(r for r in model[chain] if r.id[1] == resnum and r.id[0] == " ")
+    return model, res, set(ag if chain in ab else ab)
+
+
+def partner_search(model, partner):
+    """Neighbour search over the heavy atoms of the partner chains."""
+    return NeighborSearch([a for c in partner if c in model for a in model[c].get_atoms() if a.element != "H"])
+
+
+def residue_features(complex_id, chain, resnum, wt, mut):
+    model, res, partner = site(complex_id, chain, resnum)
+    on_ab = chain in antibody_chains(complex_id)[0]
     key = (chain, res.id)
     cx, abo, ago = _sasa_tables(complex_id)
     unbound = (abo if on_ab else ago)[key]
-    partner = set(ag if on_ab else ab)
-    partner_atoms = [a for c in partner if c in model for a in model[c].get_atoms() if a.element != "H"]
-    ns = NeighborSearch(partner_atoms)
-    atoms = [a for a in res if a.element != "H"]
-    f = {"on_antibody": int(on_ab), "rsa_complex": cx[key] / MAX_ASA[res.get_resname()],
-         "rsa_unbound": unbound / MAX_ASA[res.get_resname()], "dsasa": unbound - cx[key]}
-    for cut in (4.5, 8.0):
-        near = {id(p) for a in atoms for p in ns.search(a.coord, cut)}
-        f[f"partner_atoms_{int(cut) if cut == 8.0 else cut}"] = len(near)
+    ns = partner_search(model, partner)
+    atoms = heavy(res)
+    max_asa = MAX_ASA[res.get_resname()]
+    f = {"on_antibody": int(on_ab), "rsa_complex": cx[key] / max_asa, "rsa_unbound": unbound / max_asa,
+         "dsasa": unbound - cx[key]}
+    for cut, tag in ((4.5, "4.5"), (8.0, "8")):
+        f[f"partner_atoms_{tag}"] = len({id(p) for a in atoms for p in ns.search(a.coord, cut)})
     d = [np.linalg.norm(a.coord - p.coord) for a in atoms for p in ns.search(a.coord, 12.0)]
     f["min_dist_partner"] = min(d) if d else 12.0
     hb = sb = 0
     for a in atoms:
-        if a.element in POLAR:
-            for p in ns.search(a.coord, 3.5):
-                if p.element in POLAR:
-                    hb += 1
-                    if (res.get_resname(), a.get_id()) in CHARGED_ATOMS and \
-                            (p.get_parent().get_resname(), p.get_id()) in CHARGED_ATOMS and \
-                            CHARGE.get(wt) is not None:
-                        sb += 1
+        if a.element not in POLAR:
+            continue
+        charged = wt in CHARGE and (res.get_resname(), a.get_id()) in CHARGED_ATOMS
+        for p in ns.search(a.coord, 3.5):
+            if p.element in POLAR:
+                hb += 1
+                sb += charged and (p.get_parent().get_resname(), p.get_id()) in CHARGED_ATOMS
     f["cross_hbonds"], f["cross_saltbridges"] = hb, sb
     f["bfactor"] = float(np.mean([a.bfactor for a in atoms]))
     f["d_volume"], f["d_hydropathy"] = VOLUME[mut] - VOLUME[wt], KD[mut] - KD[wt]

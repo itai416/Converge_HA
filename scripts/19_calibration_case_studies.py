@@ -7,6 +7,7 @@ C LightGBM is drawn in the calibration plot for comparison. Writes to results/er
 Usage: python scripts/19_calibration_case_studies.py
 """
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
@@ -19,15 +20,16 @@ from Bio.PDB import NeighborSearch  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from src.data.io import KEY, RESULTS, load_oof_frame  # noqa: E402
 from src.data.mapping import AA3, read_mapping  # noqa: E402
-from src.features.geometry import CHARGED_ATOMS, POLAR, _structure, antibody_chains  # noqa: E402
+from src.eval.metrics import resample_complexes  # noqa: E402
+from src.features.geometry import CHARGED_ATOMS, POLAR, antibody_chains, heavy, site as locate_site  # noqa: E402
 
-OUT = ROOT / "results" / "error_analysis"
+OUT = RESULTS / "error_analysis"
 (OUT / "pymol").mkdir(parents=True, exist_ok=True)
 MODELS = {"C: ridge": "C: augmented ridge | huber | w=none", "C: LightGBM": "C: LightGBM | huber | w=none"}
 MAIN = "C: ridge"
 N_BINS, N_BOOT, N_CASES, N_ANALOGUES = 10, 1000, 12, 20
-KEY = ["complex", "Mutation(s)_cleaned"]
 STRUCT = ["rsa_complex", "rsa_unbound", "dsasa", "partner_atoms_4.5", "partner_atoms_8", "min_dist_partner", "cross_hbonds",
           "cross_saltbridges", "bfactor"]
 SUBST = ["d_volume", "d_hydropathy", "d_charge", "blosum62"]
@@ -36,16 +38,8 @@ RINGS = {"PHE": ["CG", "CD1", "CD2", "CE1", "CE2", "CZ"], "TYR": ["CG", "CD1", "
          "TRP": ["CD2", "CE2", "CE3", "CZ2", "CZ3", "CH2"], "HIS": ["CG", "ND1", "CD2", "CE1", "NE2"]}
 CATIONS = {("LYS", "NZ"), ("ARG", "CZ")}
 
-oof = pd.read_parquet(ROOT / "results" / "ablation_DE_esm2_35M" / "oof_rep0.parquet")
-dd = pd.read_parquet(ROOT / "data" / "processed" / "skempi_abag_dedup.parquet")
-geom = pd.read_parquet(ROOT / "data" / "processed" / "geom_features.parquet")
-folds = pd.read_csv(ROOT / "data" / "processed" / "folds.csv")
-ann = dd[~dd["censored"] & (dd["n_mut"] == 1)][KEY + ["iMutation_Location(s)", "antigen_group", "mut_chain", "wt_aa", "mut_aa",
-                                                    "pdb_resnum", "file_resnum", "Affinity_wt_parsed", "Affinity_mut_parsed",
-                                                    "Method", "Notes", "ddG_std", "n_repeats"]]
-base = (oof[KEY + ["ddG"]].merge(ann, on=KEY, validate="1:1").merge(geom, on=KEY, validate="1:1")
-        .merge(folds[["complex", "antigen_seen"]], on="complex", validate="m:1"))
-base["side"] = np.where(base["on_antibody"] == 1, "antibody", "antigen")
+oof, base = load_oof_frame(["iMutation_Location(s)", "antigen_group", "mut_chain", "wt_aa", "mut_aa", "pdb_resnum", "file_resnum",
+                            "Affinity_wt_parsed", "Affinity_mut_parsed", "Method", "Notes", "ddG_std", "n_repeats"])
 for name, col in MODELS.items():
     base[name] = oof[col].values
 
@@ -68,10 +62,7 @@ def line_fit(d, pred):
 
 def complex_bootstrap(d, fn, n=N_BOOT, seed=0):
     """Resample whole complexes with replacement (as in src.eval.metrics.bootstrap) and collect fn(resample)."""
-    rng = np.random.default_rng(seed)
-    groups = {c: g for c, g in d.groupby("complex")}
-    names = list(groups)
-    return [fn(pd.concat([groups[c] for c in rng.choice(names, size=len(names), replace=True)])) for _ in range(n)]
+    return [fn(r) for r in resample_complexes(d, n, seed)]
 
 
 cal, summ = [], []
@@ -103,7 +94,7 @@ t = cal[cal.model == MAIN]
 ax[0].fill_between(t["mean_pred"], t["obs_q10"], t["obs_q90"], color="C0", alpha=.12, label=f"{MAIN}: 10-90% of observed")
 ax[0].plot(lim, lim, "k--", lw=1)
 ax[0].set(xlabel="mean predicted ddG in bin (kcal/mol)", ylabel="mean observed ddG in bin", xlim=lim, ylim=[-1.2, 5],
-          title=f"Calibration by decile of the prediction\n(bars: 95% CI over complexes)")
+          title="Calibration by decile of the prediction\n(bars: 95% CI over complexes)")
 ax[0].legend(fontsize=8, loc="upper left")
 edges_obs = [-9, -0.5, 0.5, 1, 2, 3, 9]
 t = base.assign(bin=pd.cut(base["ddG"], edges_obs)).groupby("bin", observed=True).agg(obs=("ddG", "mean"), pred=(MAIN, "mean"),
@@ -129,14 +120,16 @@ plt.close(fig)
 
 
 # ---------------------------------------------------------------- structural case studies
-def heavy(res):
-    return [a for a in res if a.element != "H"]
+@lru_cache(maxsize=None)
+def _original_numbering(pdb_id):
+    """(chain, file residue number) -> original residue number of the SKEMPI mapping."""
+    return {(c, v[1]): k for (c, k), v in read_mapping(pdb_id).items()}
 
 
 def label(res):
     """Residue label in the original PDB numbering (the provided files are renumbered), e.g. D32.H"""
     chain = res.get_parent().id
-    inv = {(c, v[1]): k for (c, k), v in read_mapping(res.get_parent().get_parent().get_parent().id).items()}
+    inv = _original_numbering(res.get_parent().get_parent().get_parent().id)
     return f"{AA3.get(res.get_resname(), 'X')}{inv.get((chain, res.id[1]), res.id[1])}.{chain}"
 
 
@@ -147,10 +140,7 @@ def ring_centre(res):
 
 def case_study(r):
     """Contacts of the mutated residue with the partner in the wild-type structure, and what the substitution removes."""
-    model = _structure(r["complex"][:4])
-    ab, ag = antibody_chains(r["complex"])
-    partner = set(ag if r["mut_chain"] in ab else ab)
-    res = next(x for x in model[r["mut_chain"]] if x.id[1] == int(r["file_resnum"]) and x.id[0] == " ")
+    model, res, partner = locate_site(r["complex"], r["mut_chain"], int(r["file_resnum"]))
     ns = NeighborSearch([a for c in partner if c in model for x in model[c] if x.id[0] == " " for a in heavy(x)])
     # atoms that the substitution removes: the whole side chain for Gly, beyond CB otherwise (exact for Ala, approximate for the rest)
     lost = {a.get_id() for a in heavy(res) if a.get_id() not in BACKBONE and (r["mut_aa"] == "G" or a.get_id() != "CB")}

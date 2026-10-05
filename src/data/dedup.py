@@ -1,7 +1,7 @@
 """Average repeated measurements of the same (complex, mutation)."""
 import pandas as pd
 
-KEY = ["complex", "Mutation(s)_cleaned"]
+from src.data.io import KEY
 
 
 def dedup(df: pd.DataFrame) -> pd.DataFrame:

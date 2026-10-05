@@ -27,17 +27,31 @@ def metrics(df: pd.DataFrame) -> dict:
             "rmse": float(np.sqrt(((df["pred"] - df["ddG"]) ** 2).mean()))}
 
 
-def bootstrap(df: pd.DataFrame, n: int = 1000, seed: int = 0) -> pd.DataFrame:
-    """Point estimate and 95% CI per metric, resampling whole complexes with replacement."""
+def resample_complexes(df: pd.DataFrame, n: int = 1000, seed: int = 0, relabel: bool = False):
+    """Yield n resamples of df, drawing whole complexes with replacement. relabel: give every draw its own complex id."""
     rng = np.random.default_rng(seed)
     groups = {c: g for c, g in df.groupby("complex")}
     names = list(groups)
-    reps = []
     for _ in range(n):
         pick = rng.choice(names, size=len(names), replace=True)
-        # relabel so a complex drawn twice counts as two complexes in the per-complex mean
-        reps.append(metrics(pd.concat([groups[c].assign(complex=f"{c}#{i}") for i, c in enumerate(pick)])))
-    reps = pd.DataFrame(reps)
+        yield pd.concat([groups[c].assign(complex=f"{c}#{i}") if relabel else groups[c] for i, c in enumerate(pick)])
+
+
+def bootstrap(df: pd.DataFrame, n: int = 1000, seed: int = 0) -> pd.DataFrame:
+    """Point estimate and 95% CI per metric, resampling whole complexes with replacement."""
+    # relabel so a complex drawn twice counts as two complexes in the per-complex mean
+    reps = pd.DataFrame([metrics(r) for r in resample_complexes(df, n, seed, relabel=True)])
     point = metrics(df)
     return pd.DataFrame({m: {"value": point[m], "lo": reps[m].quantile(0.025), "hi": reps[m].quantile(0.975)}
                          for m in point}).T
+
+
+def paired_diff(d: pd.Series, mean: str = "mean_diff") -> dict:
+    """Summary of a per-repeat difference between two models scored on the same folds."""
+    return {mean: d.mean(), "min": d.min(), "max": d.max(), "repeats_better": f"{int((d > 0).sum())}/{len(d)}"}
+
+
+def paired_table(runs: pd.DataFrame, pairs: dict) -> pd.DataFrame:
+    """Per repeat (seeds averaged), differences in per-complex Spearman. pairs: {label: (model, reference model)}."""
+    r = runs.groupby(["model", "repeat"])["per_complex_spearman"].mean().unstack("model")
+    return pd.DataFrame([{"comparison": label, **paired_diff(r[a] - r[b])} for label, (a, b) in pairs.items()]).round(3)

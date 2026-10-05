@@ -126,10 +126,12 @@ class ESMIF1:
         logits, _ = self.model.forward(c, pad, conf, tokens[:, :-1])
         return torch.log_softmax(logits[0].float(), dim=0).T.cpu().numpy(), tokens[0, 1:].cpu().numpy()
 
-    def seq_loglik(self, coords, seq):
-        lp, target = self.logprobs(coords, seq)
+    def _loglik(self, lp, target):
         keep = target != self.alphabet.padding_idx
         return float(lp[np.arange(len(target)), target][keep].sum())
+
+    def seq_loglik(self, coords, seq):
+        return self._loglik(*self.logprobs(coords, seq))
 
     @torch.no_grad()
     def encoder_out(self, coords):
@@ -142,9 +144,7 @@ class ESMIF1:
         coords = _concat(pdb_id, list(chains))
         seq = load_chains(pdb_id)[chains[0]][1]
         lp, target = self.logprobs(coords, seq)
-        keep = target != self.alphabet.padding_idx
-        ll = float(lp[np.arange(len(target)), target][keep].sum())
-        return coords, seq, lp, ll, self.encoder_out(coords)
+        return coords, seq, lp, self._loglik(lp, target), self.encoder_out(coords)
 
     def features(self, complex_id, chain, resnum, wt, mut):
         pdb_id = complex_id[:4]

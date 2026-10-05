@@ -7,7 +7,6 @@ Per mutation:
 """
 from functools import lru_cache
 
-import numpy as np
 import torch
 from transformers import AutoTokenizer, EsmForMaskedLM
 

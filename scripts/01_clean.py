@@ -6,9 +6,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.data.clean import load_clean  # noqa: E402
 from src.data.dedup import dedup  # noqa: E402
+from src.data.io import PROCESSED, is_v1  # noqa: E402
 
-OUT = ROOT / "data" / "processed" / "skempi_abag.parquet"
-OUT_DEDUP = ROOT / "data" / "processed" / "skempi_abag_dedup.parquet"
+OUT = PROCESSED / "skempi_abag.parquet"
+OUT_DEDUP = PROCESSED / "skempi_abag_dedup.parquet"
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
     OUT.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(OUT, index=False)
 
-    v1 = df[~df["censored"] & (df["n_mut"] == 1)]
+    v1 = df[is_v1(df)]
     print(f"rows: {len(df)}, complexes: {df.complex.nunique()}")
     print(f"censored: {df.censored.sum()}")
     print(df["censor_type"].value_counts().to_string())
@@ -27,7 +28,7 @@ def main():
 
     dd = dedup(df)
     dd.to_parquet(OUT_DEDUP, index=False)
-    v1d = dd[~dd["censored"] & (dd["n_mut"] == 1)]
+    v1d = dd[is_v1(dd)]
     rep = v1d[v1d["n_repeats"] > 1]
     print(f"dedup: {len(df)} -> {len(dd)} rows; v1 {len(v1)} -> {len(v1d)}")
     print(f"v1 repeated mutations: {len(rep)}, ddG std within repeats: "

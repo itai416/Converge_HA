@@ -49,22 +49,16 @@ class AugmentedRidge:
     def _transform(self, X, fit=False):
         if self.cens_col is not None:
             X = X.drop(columns=[self.cens_col])
-        Xb, Xs = X[self.boost_cols].values, X[self.scalar_cols].values
-        Xe = X.drop(columns=self.boost_cols + self.scalar_cols).values
+        blocks = {"boost": X[self.boost_cols].values, "scalar": X[self.scalar_cols].values,
+                  "emb": X.drop(columns=self.boost_cols + self.scalar_cols).values}
+        if fit:  # an empty block gets no scaler
+            self.scalers = {k: StandardScaler().fit(v) for k, v in blocks.items() if v.shape[1]}
+        Z = {k: self.scalers[k].transform(v) if k in self.scalers else v for k, v in blocks.items()}
         if fit:
-            self.sc_e = StandardScaler().fit(Xe) if Xe.shape[1] else None
-            self.pca = PCA(_n_components(self.n_pca, Xe), random_state=0).fit(self.sc_e.transform(Xe)) if self.n_pca else None
-            self.sc_b = StandardScaler().fit(Xb) if Xb.shape[1] else None
-            self.sc_s = StandardScaler().fit(Xs) if Xs.shape[1] else None
-        if Xe.shape[1]:
-            Xe = self.sc_e.transform(Xe)
-            if self.pca is not None:
-                Xe = self.pca.transform(Xe) / np.sqrt(self.pca.explained_variance_[None, :])  # unit variance
-        if Xb.shape[1]:
-            Xb = self.sc_b.transform(Xb) * self.boost
-        if Xs.shape[1]:
-            Xs = self.sc_s.transform(Xs)
-        return np.hstack([Xb, Xs, Xe])
+            self.pca = PCA(_n_components(self.n_pca, Z["emb"]), random_state=0).fit(Z["emb"]) if self.n_pca else None
+        if self.pca is not None:
+            Z["emb"] = self.pca.transform(Z["emb"]) / np.sqrt(self.pca.explained_variance_[None, :])  # unit variance
+        return np.hstack([Z["boost"] * self.boost, Z["scalar"], Z["emb"]])
 
     def fit(self, X, y, sample_weight=None):
         cens = X[self.cens_col].values.astype(bool) if self.cens_col is not None else np.zeros(len(y), bool)
@@ -121,15 +115,15 @@ class PCALightGBM:
 
     def fit(self, X, y, sample_weight=None, eval_sets=()):
         """eval_sets: [(X, y), ...] scored every boosting round (diagnostics only); see `evals_result_`."""
+        objective, metric = ("huber", "huber") if self.loss == "huber" else ("regression", "l2")
         self.m = lgb.LGBMRegressor(
-            objective="huber" if self.loss == "huber" else "regression", alpha=HUBER_DELTA,
+            objective=objective, alpha=HUBER_DELTA,
             n_estimators=self.n_estimators, learning_rate=0.03, num_leaves=self.num_leaves, min_child_samples=20,
             subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0,
             random_state=self.seed, n_jobs=1, verbose=-1)  # one thread: runs are parallelised across CV jobs
         Z = self._transform(X, fit=True)
         evals = [(self._transform(Xe), ye) for Xe, ye in eval_sets]
-        self.m.fit(Z, y, sample_weight=sample_weight, eval_set=evals or None,
-                   eval_metric="huber" if self.loss == "huber" else "l2")
+        self.m.fit(Z, y, sample_weight=sample_weight, eval_set=evals or None, eval_metric=metric)
         self.evals_result_ = self.m.evals_result_ if evals else {}
         return self
 

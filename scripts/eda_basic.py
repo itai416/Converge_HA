@@ -5,13 +5,13 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.data.clean import load_clean  # noqa: E402
 from src.data.dedup import dedup  # noqa: E402
+from src.data.io import is_v1  # noqa: E402
 
 OUT = ROOT / "results" / "eda"
 
@@ -22,7 +22,7 @@ def load():
     df = load_clean()
     df["kind"] = np.where(df["n_mut"] == 1, "single-point", "multi-point")
     df["valid"] = ~df["censored"]
-    df["v1"] = ~df["censored"] & (df["n_mut"] == 1)
+    df["v1"] = is_v1(df)
     return df
 
 
@@ -34,7 +34,7 @@ def save(fig, name):
 
 
 def plot_ddg_hist(df):
-    ok = df[df["valid"] & ~df["censored"]]
+    ok = df[df["valid"]]
     v1 = df[df["v1"]]
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
     sns.histplot(v1["ddG"], bins=40, kde=True, ax=axes[0], color="C0")
@@ -96,9 +96,8 @@ def plot_repeats(df):
     rep = rep[~rep["censored"] & (rep["n_repeats"] > 1)]
     order = rep.groupby("complex").size().sort_values(ascending=False).index
     pos = {c: i for i, c in enumerate(order)}
-    rep = rep.assign(x=rep["complex"].map(pos))
-    rep = rep.assign(x=rep["x"] + (rep.groupby("complex").cumcount() - rep.groupby("complex")["x"].transform("size") / 2)
-                     * 0.8 / rep.groupby("complex")["x"].transform("size"))
+    n = rep.groupby("complex")["ddG"].transform("size")
+    rep = rep.assign(x=rep["complex"].map(pos) + (rep.groupby("complex").cumcount() - n / 2) * 0.8 / n)  # spread within a complex
     per_c = rep.groupby("complex").agg(n=("ddG", "size"), std=("ddG_std", "mean")).reindex(order)
 
     fig, axes = plt.subplots(2, 1, figsize=(18, 11), sharex=True, gridspec_kw={"height_ratios": [3, 1.3]})
