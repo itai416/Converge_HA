@@ -1,0 +1,108 @@
+"""Write AI_PROMPTS.md: every prompt typed to the AI assistant (Claude Code) during this project, in chronological order.
+
+Claude Code stores each session as a JSON-lines transcript under ~/.claude/projects/<project>/. This script keeps only
+the messages the user typed. It drops tool results, automatic notifications from background jobs, IDE and harness
+context, and slash commands (model switches are kept as a one-line note).
+
+The prompts were typed quickly, partly dictated and partly in Hebrew. scripts/ai_prompt_edits.json holds a cleaned
+version of each one (spelling, grammar, dictation errors, English translation), keyed by timestamp; the meaning is
+unchanged. A prompt with no entry there is exported as typed, and the script reports how many.
+
+Usage: python scripts/export_ai_prompts.py [transcript_dir]
+"""
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "AI_PROMPTS.md"
+EDITS = Path(__file__).with_name("ai_prompt_edits.json")
+DEFAULT_DIR = Path.home() / ".claude" / "projects" / "c--Users-User-Converage-HA"
+
+# blocks inserted by the harness, not typed by the user
+HARNESS_BLOCKS = re.compile(
+    r"<(system-reminder|browser_instruction|ide_opened_file|ide_selection|task-notification|local-command-stdout|"
+    r"local-command-caveat)>.*?</\1>",
+    re.S,
+)
+PASTE_TAGS = re.compile(r"</?pasted_content[^>]*>")
+MODEL_SWITCH = re.compile(r"<command-name>/model</command-name>.*?<command-args>(.*?)</command-args>", re.S)
+
+
+def read_session(path):
+    """Return (start time, title, models, [(time, kind, text)]) for one transcript."""
+    title, models, items = None, [], []
+    for line in path.open(encoding="utf-8"):
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        kind = d.get("type")
+        if kind in ("custom-title", "ai-title"):
+            title = d.get("customTitle") or d.get("aiTitle") or title
+        elif kind == "assistant":
+            model = d["message"].get("model")
+            if model and not model.startswith("<") and model not in models:
+                models.append(model)
+        elif kind == "user" and not d.get("isSidechain") and not d.get("isMeta"):
+            content = d["message"]["content"]
+            texts = [content] if isinstance(content, str) else [b["text"] for b in content if b.get("type") == "text"]
+            for text in texts:
+                switch = MODEL_SWITCH.search(text)
+                if switch:
+                    items.append((d["timestamp"], "note", f"switched model to `{switch.group(1).strip()}`"))
+                    continue
+                text = PASTE_TAGS.sub("", HARNESS_BLOCKS.sub("", text)).strip()
+                if not text or text.startswith(("<command-name>", "[Request interrupted")):
+                    continue
+                items.append((d["timestamp"], "prompt", text))
+    start = items[0][0] if items else ""
+    return start, title, models, items
+
+
+def main():
+    src = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DIR
+    sessions = sorted((read_session(p) for p in src.glob("*.jsonl")), key=lambda s: s[0])
+    edits = json.loads(EDITS.read_text(encoding="utf-8"))
+    seen, lines, n_prompts, n_sessions, n_raw = set(), [], 0, 0, 0
+    for start, title, models, items in sessions:
+        # a resumed or forked session repeats the prompts of its parent
+        items = [it for it in items if it[1] == "note" or (it[0], it[2]) not in seen and it[2] not in seen]
+        prompts = [it for it in items if it[1] == "prompt"]
+        if not prompts:
+            continue
+        seen.update(it[2] for it in prompts)
+        n_sessions += 1
+        lines += [f"## Session {n_sessions}: {edits['titles'].get(title, title) or 'untitled'}", ""]
+        lines += [f"Started {prompts[0][0][:16].replace('T', ' ')} UTC. Models: {', '.join(models)}.", ""]
+        for ts, kind, text in items:
+            if kind == "note":
+                lines += [f"*({text})*", ""]
+                continue
+            n_prompts += 1
+            n_raw += ts not in edits["prompts"]
+            text = edits["prompts"].get(ts, text)
+            note = " (translated from Hebrew)" if ts in edits["translated"] else ""
+            lines += [f"**{n_prompts}.** `{ts[:16].replace('T', ' ')}`{note}", ""]
+            lines += ["> " + ln if ln.strip() else ">" for ln in text.splitlines()]
+            lines += [""]
+    header = [
+        "# AI prompt history",
+        "",
+        "All AI assistance in this project came from Claude Code (Anthropic), used in the VS Code extension.",
+        f"This file lists the {n_prompts} prompts typed over {n_sessions} sessions, in chronological order (times in UTC).",
+        "The prompts were edited for readability: spelling, grammar and dictation errors are corrected, and the prompts",
+        "written in Hebrew are translated to English and marked. The content and order are unchanged.",
+        "Session titles were generated by Claude Code. The assistant's replies, tool calls and automatic",
+        "background-job notifications are not included.",
+        "",
+        "Generated by [scripts/export_ai_prompts.py](scripts/export_ai_prompts.py) from the local session transcripts.",
+        "",
+    ]
+    OUT.write_text("\n".join(header + lines), encoding="utf-8")
+    print(f"wrote {OUT.name}: {n_prompts} prompts, {n_sessions} sessions, {n_raw} prompts without a cleaned version")
+
+
+if __name__ == "__main__":
+    main()

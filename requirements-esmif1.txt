@@ -1,0 +1,16 @@
+# Extra packages for the ESM-IF1 features (scripts/08_esmif1.py, model rungs D and E).
+# Not needed to reproduce the results: the cached features are in data/processed/esmif1.parquet.
+#
+# These need Python >= 3.10, so they do NOT install on top of requirements.txt under Python 3.9:
+# fair-esm needs biotite, biotite >= 1.0 is the first release that works with NumPy 2, and it has no Python 3.9 build.
+# (biotite 0.39, the last Python 3.9 release, fails to import with numpy 2.0.2.)
+# The features in this repository were computed on Google Colab with notebooks/02_colab_embeddings.ipynb, which
+# installs exactly these packages. Colab's package versions were not recorded, so only fair-esm is pinned.
+#   pip install -r requirements-esmif1.txt
+
+fair-esm==2.0.0
+biotite>=1.0
+torch-geometric
+
+# torch_scatter is optional. Its wheels must match the exact torch build, so it is not listed here;
+# src/features/inverse_folding.py falls back to a pure-PyTorch replacement when it is not installed.

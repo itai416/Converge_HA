@@ -1,0 +1,24 @@
+25 runs
+[Parallel(n_jobs=15)]: Using backend LokyBackend with 15 concurrent workers.
+[Parallel(n_jobs=15)]: Done   2 out of  25 | elapsed:  4.3min remaining: 49.2min
+[Parallel(n_jobs=15)]: Done   8 out of  25 | elapsed:  4.4min remaining:  9.4min
+[Parallel(n_jobs=15)]: Done  14 out of  25 | elapsed:  4.6min remaining:  3.6min
+[Parallel(n_jobs=15)]: Done  20 out of  25 | elapsed:  7.6min remaining:  1.9min
+[Parallel(n_jobs=15)]: Done  25 out of  25 | elapsed:  7.7min finished
+                                       per_complex_spearman        pooled_pearson          rmse        tail_mean_pred        tail_rmse        cens_below_bound        cens_mean_shortfall       
+                                                       mean    std           mean    std   mean    std           mean    std      mean    std             mean    std                mean    std
+model                                                                                                                                                                                           
+C (exact rows only)                                   0.460  0.017          0.457  0.028  1.379  0.019          1.342  0.044     2.540  0.030            0.858  0.048               2.190  0.045
++ censored, one-sided Huber (Tobit)                   0.455  0.009          0.453  0.021  1.377  0.014          1.411  0.047     2.502  0.031            0.833  0.042               2.205  0.074
++ censored, bound used as exact label                 0.454  0.008          0.454  0.021  1.377  0.013          1.406  0.047     2.505  0.031            0.850  0.037               2.209  0.073
++ censored, one-sided Huber, 1/sqrt(n)                0.454  0.015          0.435  0.022  1.408  0.018          1.193  0.071     2.663  0.063            0.917  0.029               2.396  0.047
++ censored, bound as label, 1/sqrt(n)                 0.454  0.016          0.435  0.023  1.408  0.018          1.190  0.071     2.665  0.062            0.917  0.029               2.397  0.047
+
+paired vs C on identical exact test rows/folds:
+                                 model  per-complex Spearman vs C    min   max repeats_better  tail RMSE vs C
+                   C (exact rows only)                      0.000  0.000 0.000            0/5           0.000
+   + censored, one-sided Huber (Tobit)                     -0.005 -0.025 0.009            2/5          -0.038
+ + censored, bound used as exact label                     -0.006 -0.026 0.009            1/5          -0.035
++ censored, one-sided Huber, 1/sqrt(n)                     -0.006 -0.021 0.009            1/5           0.124
+ + censored, bound as label, 1/sqrt(n)                     -0.006 -0.020 0.008            2/5           0.126
+done in 463s

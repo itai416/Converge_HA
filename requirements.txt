@@ -1,0 +1,24 @@
+# Core environment: data cleaning, EDA, geometry features, ESM-2 features, all training and analysis scripts.
+# Tested with Python 3.9.2 on Windows 11 (CPU only). Install with:
+#   pip install -r requirements.txt
+# torch is the CPU build; for it, add:  --extra-index-url https://download.pytorch.org/whl/cpu
+# ESM-IF1 features (scripts/08_esmif1.py) need the extra packages in requirements-esmif1.txt.
+
+numpy==2.0.2
+pandas==2.3.3
+scipy==1.13.1
+scikit-learn==1.6.1
+lightgbm==4.6.0
+joblib==1.5.3
+pyarrow==21.0.0
+
+# structures (parsing, SASA, neighbour search)
+biopython==1.85
+
+# ESM-2 (scripts/04_esm2.py)
+torch==2.8.0
+transformers==4.57.6
+
+# figures
+matplotlib==3.9.4
+seaborn==0.13.2

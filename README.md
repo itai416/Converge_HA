@@ -19,7 +19,7 @@ rank candidate mutations. We do not claim generalisation to new targets. This us
 | single-point, uncensored, valid affinity | 756 | 47 |
 | **v1 set** after averaging repeated measurements of the same (complex, mutation) | **668** | 46 |
 
-- **Scope.** v1 covers single-point, uncensored mutations only. Multi-point rows (381) and censored rows (45, where only a lower bound on ΔΔG is known)
+- **Scope.** v1 covers single-point, uncensored mutations only. Multi-point rows (381) and censored single-point rows (74; for 24 unique rows a numeric lower bound on ΔΔG is known, see §6.7)
   are kept for later extensions (Tobit-style loss, additivity models).
 - **Residue mapping.** Residues are located through SKEMPI's `.mapping` files, which handle PDB numbering and insertion codes. All 668 wild-type residues
   match the structure.
@@ -348,6 +348,26 @@ sites of a mutation set (sum, so that a linear model is additive over sites, or 
 4. **Conclusion:** naively mixing multi-point rows into the training set does not improve C. They stay a separate extension; untested remedies are an `is_multi` indicator, a small
    sample weight for multi rows, and a model of the interaction between sites.
 
+### 6.7 Adding censored rows with a Tobit-style loss
+[scripts/15_censored_features.py](scripts/15_censored_features.py), [scripts/16_censored_experiment.py](scripts/16_censored_experiment.py), [results/censored/](results/censored/).
+**Which rows.** 74 single-point rows are censored: 16 with mutant Kd ">X", 14 with wild-type Kd "<X" and an exact mutant Kd (both give a lower bound ΔΔG ≥ L),
+11 with both affinities "<" (the ratio of two limits has no direction, so no bound), and 33 non-binders without a number. We used the 30 rows with a lower bound,
+24 after keeping the largest bound per (complex, mutation): 10 complexes, mean bound 3.6 kcal/mol. Complex 4I77 has 14 of them and no exact rows.
+**Loss.** A censored row costs Huber(max(0, L − prediction)): a prediction at or above the bound is free (`cens_col` in `AugmentedRidge`). They are used in training only; the inner CV
+scores exact rows only and the test metric uses the same exact rows as before, so every comparison is paired with C.
+
+| Training set (C ridge) | Per-complex Spearman | Paired vs C | RMSE | Mean prediction for exact rows with ΔΔG > 2 (true mean 3.45) | Tail RMSE |
+|---|---|---|---|---|---|
+| exact rows only (C) | 0.460 | – | 1.379 | 1.34 | 2.54 |
+| + censored, one-sided Huber (Tobit) | 0.455 | −0.005 (2/5) | 1.377 | 1.41 | 2.50 |
+| + censored, bound used as exact label | 0.454 | −0.006 (1/5) | 1.377 | 1.41 | 2.51 |
+| + censored, Tobit, 1/√n weights | 0.454 | −0.006 (1/5) | 1.408 | 1.19 | 2.66 |
+
+1. **No gain.** Per-complex Spearman is unchanged within noise (−0.005), and the tail improves only slightly without weights (RMSE 2.54 → 2.50) and worsens with weights.
+2. **The one-sided loss behaves like the naive label.** On held-out censored rows the model predicts below the bound 83–92% of the time (mean shortfall 2.2 kcal/mol), and for a prediction below the
+   bound the one-sided loss equals the exact-label loss. This confirms the tail under-prediction, but 24 rows, concentrated in a few complexes, are too few to correct it.
+3. **Conclusion:** censored rows are not worth adding to C in this form. The Tobit loss stays implemented for the later combination; the 33 non-binders (no number) could only be used with an assumed bound.
+
 ## 7. Training diagnostics
 The full report, covering what each check measured, why, the results and the actions taken, is in
 [reports/training_diagnostics.md](reports/training_diagnostics.md). The key points:
@@ -414,11 +434,19 @@ re-tuning at every size would cost ~40,000 extra fits, and a fixed penalty if an
 
 ## 8. Reproducing
 
-Python 3.9; packages: pandas, numpy, scipy, scikit-learn, lightgbm, biopython, torch, transformers, joblib, matplotlib, seaborn, pyarrow.
-For ESM-IF1 additionally: fair-esm, torch_geometric and biotite. Use biotite ≥ 1.0 with NumPy 2, or biotite 0.39 with NumPy 1.x; Python 3.9 can only
-install the latter. `torch_scatter` is optional: [inverse_folding.py](src/features/inverse_folding.py) provides a tested pure-PyTorch replacement
+Python 3.9. The pinned environment is in [requirements.txt](requirements.txt) (torch is the CPU build):
+
+```
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+```
+
+This covers every step except computing the ESM-IF1 features, whose outputs are cached in `data/processed/esmif1.parquet`.
+Recomputing them needs [requirements-esmif1.txt](requirements-esmif1.txt) (fair-esm, torch_geometric, biotite ≥ 1.0) on Python ≥ 3.10:
+biotite 0.39, the last release for Python 3.9, does not import with NumPy 2. We ran that step on Colab.
+`torch_scatter` is optional: [inverse_folding.py](src/features/inverse_folding.py) provides a tested pure-PyTorch replacement
 for the one function fair-esm uses.
-(A pinned `requirements.txt` is still to be added.)
+
+The AI prompt history is in [AI_PROMPTS.md](AI_PROMPTS.md).
 
 | Step | Command | Runtime (Windows 11, 16-thread CPU, no GPU) |
 |---|---|---|
@@ -437,6 +465,8 @@ for the one function fair-esm uses.
 | targeted experiments (§6.5, 30 runs) | `python scripts/12_hypotheses.py geometry` | ~2 min |
 | multi-point features (§6.6) | `python scripts/13_multipoint_features.py` | ~5 min |
 | multi-point experiment (30 runs) | `python scripts/14_multipoint_experiment.py` | ~13 min on 15 workers |
+| censored features (§6.7) | `python scripts/15_censored_features.py` | ~1 min |
+| censored experiment (25 runs) | `python scripts/16_censored_experiment.py` | ~8 min on 15 workers |
 | error analysis | `python scripts/10_error_analysis.py` | seconds |
 | bundle for Colab | `python scripts/make_colab_bundle.py` → upload `colab_bundle.zip` to Drive | seconds |
 | ESM-2 650M + ESM-IF1 features | [notebooks/02_colab_embeddings.ipynb](notebooks/02_colab_embeddings.ipynb) on a Colab T4 GPU | ~15–20 min including installs |
