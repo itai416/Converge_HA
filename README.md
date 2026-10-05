@@ -26,7 +26,7 @@ mutations. This drives the split and the primary metric. Complexes with an unsee
 | single-point, uncensored, valid affinity | 756 | 46 |
 | **v1 set** after averaging repeated measurements of the same (complex, mutation) | **668** | 46 |
 
-- **Scope.** v1 is single-point, uncensored mutations. The 381 multi-point rows and 74 censored single-point rows were tested as extra training data in §6.6–6.7 and did not help.
+- **Scope.** v1 is single-point, uncensored mutations. The 381 multi-point rows and 74 censored single-point rows were tested as extra training data in §6.5 and did not help.
 - **Residue mapping.** Residues are located through SKEMPI's `.mapping` files (PDB numbering, insertion codes). All 668 wild-type residues match the structure.
 - **Antigen groups.** Antigens are grouped (lysozyme, gp120, integrin α-1, ...). Anti-idiotype complexes (e.g. 1DVF) are their own class.
 
@@ -78,18 +78,12 @@ Code: [src/data/splits.py](src/data/splits.py), [src/models/cv.py](src/models/cv
 ## 4. Model
 
 ### 4.1 Which pretrained models
-Deciding facts: every complex has an experimental structure, 58% of mutations are on the antibody and 42% on the antigen, and there are only 668 labelled rows.
+Every complex has an experimental structure, mutations fall on both the antibody (58%) and the antigen (42%), and there are only 668 labelled rows. So we chose:
+- **ESM-2 (35M)** for the sequence modality: it is cheap and covers both antibody and antigen chains.
+- **ESM-IF1** (inverse folding) for the learned structure modality (models D, E): it reads the experimental backbone including the partner chains, so it can score whether a residue fits its position at the interface.
 
-| Model | Kind | Covers antibody / antigen | Sees the partner | Verdict |
-|---|---|---|---|---|
-| **ESM-2** (35M; 650M zero-shot) | protein language model | ✓ / ✓ | ✗ | **Sequence modality.** Cheap, covers both sides. |
-| **ESM-IF1** | inverse folding (structure → amino-acid probabilities) | ✓ / ✓ | ✓ | **Learned structure modality** (models D, E). Scored with and without the partner chains for an interface-specific signal. |
-| ESMFold, IgFold | structure prediction | ✓ / ✓ (IgFold antibody only) | weak / ✗ | Skipped: we already have experimental structures, and a point mutation barely changes the predicted backbone. |
-| AbLang2, AntiFold | antibody-specific | ✓ / ✗ | ✗ / ✓ | Not run: no features for the 42% antigen-side rows. A candidate next step for the antibody side (§9). |
-| SaProt, ESMC 300M | structure-aware / newer language model | ✓ / ✓ | ✗ | Not run. SaProt fuses inside the encoder, which would blur the sequence-vs-structure ablation. |
-
-Structure prediction answers "what shape will this sequence take?", which the crystal structure already answers. We need "is this mutation acceptable
-at this position, next to this partner?", which is what geometry features and inverse folding address.
+Structure-prediction models (ESMFold, IgFold) were skipped because the crystal structures already answer what they predict. Antibody-only models (AbLang2, AntiFold)
+give no features for the antigen-side rows and are a next step for the antibody side (§9).
 
 ### 4.2 Representation and fusion
 ```
@@ -193,87 +187,50 @@ Full model-A grid (loss × weighting): [results/model_A/summary.csv](results/mod
 Its zero-shot interface score (0.09) is far below any single geometry feature (about 0.4).
 
 ### 6.4 Error analysis
-Out-of-fold predictions of the primary split, C ridge (per-complex Spearman 0.48, pooled Pearson 0.49, RMSE 1.36).
-[scripts/10_error_analysis.py](scripts/10_error_analysis.py), [scripts/19_calibration_case_studies.py](scripts/19_calibration_case_studies.py), outputs in [results/error_analysis/](results/error_analysis/).
+Three checks on the out-of-fold predictions of C ridge (primary split). Code: [scripts/10_error_analysis.py](scripts/10_error_analysis.py),
+[scripts/19_calibration_case_studies.py](scripts/19_calibration_case_studies.py); outputs in [results/error_analysis/](results/error_analysis/).
 
-| Stratum | Rows | Complexes with ≥10 rows | Per-complex Spearman |
-|---|---|---|---|
-| seen / unseen antigen | 504 / 164 | 14 / 6 | 0.49 / 0.47 |
-| antibody-side / antigen-side mutations | 385 / 283 | 14 / 10 | 0.35 / 0.60 |
-| to Ala / other substitutions | 364 / 304 | 13 / 9 | 0.57 / 0.41 |
-| location COR / SUP / SUR / RIM | 281 / 115 / 79 / 162 | 11 / 2 / 3 / 5 | 0.43 / 0.40 / 0.27 / 0.18 |
+**1. Where does ranking fail?**
+- *Why:* one average over complexes can hide a subgroup that matters for the use case.
+- *How:* per-complex Spearman recomputed inside each stratum (mutated side, seen/unseen antigen, location class).
+- *Result:* antibody-side mutations are ranked much worse than antigen-side ones (**0.35 vs 0.60**), although they are 58% of the rows. Unseen antigens are about as good as seen ones
+  (0.47 vs 0.49; only 6 evaluable complexes). Rim residues are the hardest location class (0.18).
 
-1. **Unseen antigens:** ridge is almost unchanged (0.49 vs 0.47), LightGBM drops (0.47 → 0.35). With 6 evaluable complexes this is suggestive only.
-2. **Antibody-side mutations are ranked much worse** (0.35 vs 0.60), although they are 58% of the rows. This is the clearest target for improvement.
-3. **Predictions are compressed toward the mean** ([calibration.png](results/error_analysis/calibration.png)). Their standard deviation is 0.59 against 1.54 observed. Mutations with ΔΔG > 2 (125 rows) have mean observed
-   3.45 and mean predicted 1.37. The 49 improving mutations (< −0.5) have mean predicted +0.60, so the model cannot find improving mutations.
-4. **The worst errors are real hotspots, not label noise.** 10 of the 12 largest errors are fully buried residues with 8–26 partner atoms in contact and identifiable interactions
-   (H-bonds, cation–π, aromatic stacking; [case_studies.csv](results/error_analysis/case_studies.csv)), observed 6–7.4 with the mutant affinity at the assay's detection limit. Seven are in 3HFM.
-   The other two: 2VIS IC89T (the crystal structure is a mutant taken as wild type, a data problem) and 1JRH E45P (proline at an exposed site; no feature captures the backbone effect).
-5. Per-complex Spearman is 0.4–0.8 for most complexes with ≥10 rows. Exceptions: 1MLC (−0.45, 11 rows) and 2BDN (0.19, 12 rows).
+**2. Are the predicted values the right size? (calibration)**
+- *Why:* Spearman ignores scale, and lead optimisation needs to know which mutations are large and which improve binding.
+- *How:* predictions grouped into 10 equal-size bins and compared with the mean observed ΔΔG per bin; residuals also grouped by observed ΔΔG.
+- *Result:* the bins are in the right order, but **predictions are compressed toward the mean**: their standard deviation is 0.59 against 1.54 observed. Mutations with ΔΔG > 2 (125 rows) have mean
+  observed 3.45 and mean predicted 1.37. The 49 improving mutations (< −0.5) have mean predicted +0.60, so the model cannot find them.
 
-### 6.5 Targeted follow-up experiments
-Hypotheses suggested by §6.4, tested with ridge on the same folds ([scripts/12_hypotheses.py](scripts/12_hypotheses.py), [results/hypotheses_geometry/](results/hypotheses_geometry/)). Paired differences are vs geometry-only ridge (0.436).
+<img src="results/error_analysis/calibration.png" alt="Calibration of model C" width="420">
 
-| Hypothesis | Result |
-|---|---|
-| Zero-shot ESM-2 650M has binding signal where 35M had none | **No.** Per-complex Spearman 0.07 (antibody side 0.13, antigen side 0.01). A full 650M ablation was not run. |
-| Antibody-side mutations need side-specific effects (geometry × side interactions) | **No.** −0.009, worse in 5/5 repeats. |
-| Richer 3D context helps: partner/chain environment features ([environment.py](src/features/environment.py)) | **No** for ranking (−0.018, 1/5), though pooled Pearson +0.02. |
-| Wild-type/mutant identity descriptors help | **Inconsistent** (+0.010, 4/5) and they hurt pooled Pearson (0.45 → 0.37). |
-| The worst errors are label noise or mapping errors | **Mostly no** (§6.4, point 4). |
+**3. Are the worst errors bad labels or real misses? (structural case studies)**
+- *Why:* a large error can be measurement noise, a residue-mapping mistake, or a real effect the features miss. Each needs a different fix.
+- *How:* for the 12 largest errors we listed every partner residue within 4.5 Å in the wild-type structure, classified the contacts (H-bond, salt bridge, cation–π, aromatic stacking),
+  and compared with other substitutions at the same site ([case_studies.csv](results/error_analysis/case_studies.csv), PyMOL scripts in `pymol/`).
+- *Result:* **10 of the 12 are real hotspots.** They are fully buried, touch 8–26 partner atoms and make specific interactions, and the mutant affinity sits at the assay's detection limit
+  (observed 6–7.4, predicted 1.2–1.8). The other two are a data problem (2VIS IC89T: the crystal structure is a mutant taken as wild type) and a proline substitution at an exposed
+  site (1JRH E45P), whose backbone effect no feature captures.
 
-No variant gave a consistent paired gain, so none was carried to model C. The geometry set is close to what this data supports for ranking with a low-capacity model.
+**Conclusion.** The errors are a model limitation, not label noise. The model recognises a buried contact residue but cannot tell an ordinary one from a hotspot: the geometry
+features count contacts, they do not measure how much a specific interaction contributes. The antibody side is where ranking is weakest.
 
-### 6.6 Adding multi-point rows to training
-272 uncensored multi-point rows (29 complexes) added to the 668 single-point rows; per-site features of C are pooled over the sites (sum or mean).
-[scripts/14_multipoint_experiment.py](scripts/14_multipoint_experiment.py), [results/multipoint/](results/multipoint/). Per-complex Spearman:
+### 6.5 Extensions tested: none improved C
+All with ridge on the same folds, compared by paired per-complex Spearman. Results: [results/hypotheses_geometry/](results/hypotheses_geometry/), [results/multipoint/](results/multipoint/),
+[results/censored/](results/censored/), [results/censored_multi/](results/censored_multi/).
 
-| Training set (C ridge) | Single-point test rows | Multi-point test rows | All test rows | Paired vs singles-only, all rows |
-|---|---|---|---|---|
-| singles only (= C), sum / mean pooling | 0.460 / 0.460 | 0.053 / 0.119 | 0.332 / 0.329 | – |
-| + multi, sum / mean pooling | 0.385 / 0.397 | 0.090 / 0.143 | 0.271 / 0.273 | −0.061 (0/5) / −0.059 (0/5) |
-| + multi, 1/√n weights, sum / mean pooling | 0.396 / 0.410 | 0.039 / 0.082 | 0.276 / 0.289 | −0.056 (1/5) / −0.043 (0/5) |
+| What we tried | Why | Result |
+|---|---|---|
+| Zero-shot ESM-2 650M | The 35M score had no binding signal; a larger model might. | Per-complex Spearman 0.07. A full 650M ablation was not run. |
+| Geometry × side interactions | Antibody-side mutations are ranked worse (§6.4). | −0.009 vs geometry only, worse in 5/5 repeats. |
+| Partner/chain environment features ([environment.py](src/features/environment.py)) | Richer 3D context might separate hotspots. | −0.018 (better in 1/5); pooled Pearson +0.02. |
+| Wild-type/mutant identity descriptors | Wild-type identity explains 10% of the variance (§2). | +0.010 (4/5), but pooled Pearson falls from 0.45 to 0.37. |
+| Adding 272 multi-point rows, per-site features pooled by sum or mean | 40% more training rows. | Single-point ranking falls from 0.46 to 0.385–0.41 (worse in 19 of 20 comparisons). Multi-point rows themselves are barely predictable (0.05–0.14). |
+| Adding 24 censored rows with a one-sided (Tobit-style) Huber loss | Their lower bounds (mean 3.6 kcal/mol) could correct the under-predicted tail. | −0.005 (2/5); the tail prediction moves only from 1.34 to 1.41. |
+| Multi-point + censored rows together (47 bounds) | Check whether the two interact. | Censored rows repair most of the multi-point damage; the best variant (1/√n weights) ties C (−0.006), none beats it. |
 
-- **Adding multi-point rows hurts single-point ranking** (19 of 20 paired comparisons) and the combined score. Complex weighting reduces but does not remove the harm.
-- **Multi-point ΔΔG is hard to predict from per-site features** (0.05–0.14; RMSE 2.0–2.7): the sites interact, and per-site features cannot see that. Mean pooling beats sum pooling, i.e. strict additivity over-predicts large sets.
-
-### 6.7 Adding censored rows with a Tobit-style loss
-Of 74 censored single-point rows, 24 unique mutations have a usable lower bound ΔΔG ≥ L (mean bound 3.6 kcal/mol, 10 complexes). A censored row costs
-Huber(max(0, L − prediction)): a prediction at or above the bound is free. Censored rows are used in training only.
-[scripts/16_censored_experiment.py](scripts/16_censored_experiment.py), [results/censored/](results/censored/).
-
-| Training set (C ridge) | Per-complex Spearman | Paired vs C | RMSE | Mean prediction for rows with ΔΔG > 2 (true 3.45) |
-|---|---|---|---|---|
-| exact rows only (C) | 0.460 | – | 1.379 | 1.34 |
-| + censored, one-sided Huber (Tobit) | 0.455 | −0.005 (2/5) | 1.377 | 1.41 |
-| + censored, bound used as exact label | 0.454 | −0.006 (1/5) | 1.377 | 1.41 |
-
-- **No gain.** On held-out censored rows the model predicts below the bound 83–92% of the time, where the one-sided loss equals the exact-label loss. 24 rows are too few to correct the tail.
-- **Multi-point + censored together** ([scripts/18_censored_multi_experiment.py](scripts/18_censored_multi_experiment.py), [results/censored_multi/](results/censored_multi/)): still below C on single-point rows (−0.036, 0/5 with mean pooling; −0.010, 2/5 with 1/√n weights).
-
-### 6.8 Combining multi-point and censored rows
-[scripts/17_censored_multi_features.py](scripts/17_censored_multi_features.py), [scripts/18_censored_multi_experiment.py](scripts/18_censored_multi_experiment.py),
-[results/censored_multi/](results/censored_multi/). Training set: 668 exact single-point + 272 exact multi-point rows, plus the 47 right-censored rows with a numeric lower bound
-(24 single-point, 23 multi-point; the 23 add 99 sites), with the one-sided Huber loss in training only. Test scoring is on exact rows. Per-complex Spearman, mean over 5 fold assignments.
-(The "+ multi" rows differ by about 0.005 from §6.6 because the extra complexes that only have censored rows change the random fold assignment of the multi-only complexes.)
-
-| Training set | Pooling | Single-point test rows | Multi-point test rows | All test rows | Paired vs singles-only, all rows |
-|---|---|---|---|---|---|
-| singles only (= C) | mean | **0.460** | 0.119 | **0.329** | – |
-| + multi | mean | 0.392 | 0.140 | 0.267 | −0.062 (0/5) |
-| + multi + censored | mean | 0.424 | **0.152** | 0.302 | −0.027 (0/5) |
-| + multi + censored, 1/√n weights | mean | 0.450 | 0.119 | 0.323 | −0.006 (3/5) |
-| singles only | sum | 0.460 | 0.053 | 0.332 | – |
-| + multi | sum | 0.397 | 0.083 | 0.282 | −0.050 (0/5) |
-| + multi + censored | sum | 0.408 | 0.120 | 0.295 | −0.037 (1/5) |
-| + multi + censored, 1/√n weights | sum | 0.392 | 0.087 | 0.281 | −0.051 (1/5) |
-
-1. **Censored rows repair most of the damage that multi-point rows do** (mean pooling, all rows: 0.267 → 0.302 → 0.323), and with 1/√n weights the model ties plain C (−0.006, not
-   worse in 3/5 repeats). But **none of the combinations beats C**; the best one only matches it.
-2. **Multi-point rows are predicted better when censored rows are included** (sum pooling: 0.083 → 0.120, better than singles-only in 5/5 repeats), but this comes at a cost for single-point rows.
-3. **Conclusion for the "more data" branch:** with per-site features and a single linear model, neither multi-point nor censored rows improve model C. The remaining ideas are a model that represents the
-   interaction between sites (for multi-point), and a different kind of data (non-antibody SKEMPI pretraining).
+**Conclusion.** The geometry set is close to what this data supports for ranking with a low-capacity model, and more rows of a different kind do not help while the features are per-site.
+Multi-point mutations need a model of the interaction between sites.
 
 ## 7. Training diagnostics
 Full report: [reports/training_diagnostics.md](reports/training_diagnostics.md). Key points:
@@ -319,13 +276,11 @@ Hardware: Windows 11, 16-thread CPU, no GPU; a Colab T4 GPU for ESM-2 650M and E
 | ablation D/E (90 runs) | `python scripts/09_ablation_DE.py 35M 5 3` | ~13 h (much slower than A/B/C; cause not diagnosed) |
 | diagnostics | `python scripts/diag_training_curves.py`, `python scripts/diag_convergence.py` | ~5 min |
 | learning curve (750 fits) | `python scripts/07_learning_curve.py` | ~2 min |
-| censored multi-point features (§6.8) | `python scripts/17_censored_multi_features.py` | ~1 min |
-| multi-point + censored experiment (40 runs) | `python scripts/18_censored_multi_experiment.py` | ~20 min on 15 workers |
 | error analysis | `python scripts/10_error_analysis.py`, `python scripts/19_calibration_case_studies.py` | seconds (script 19 not timed) |
 | targeted experiments (§6.5) | `python scripts/11_environment_features.py`, `python scripts/12_hypotheses.py geometry` | ~2 min |
-| multi-point (§6.6) | `python scripts/13_multipoint_features.py`, `python scripts/14_multipoint_experiment.py` | ~18 min |
-| censored (§6.7) | `python scripts/15_censored_features.py`, `python scripts/16_censored_experiment.py` | ~9 min |
-| multi-point + censored (§6.7) | `python scripts/17_censored_multi_features.py`, `python scripts/18_censored_multi_experiment.py` | ~20 min |
+| multi-point (§6.5) | `python scripts/13_multipoint_features.py`, `python scripts/14_multipoint_experiment.py` | ~18 min |
+| censored (§6.5) | `python scripts/15_censored_features.py`, `python scripts/16_censored_experiment.py` | ~9 min |
+| multi-point + censored (§6.5, 40 runs) | `python scripts/17_censored_multi_features.py`, `python scripts/18_censored_multi_experiment.py` | ~21 min |
 
 Training runs use 15 worker processes.
 
@@ -336,11 +291,12 @@ Training runs use 15 worker processes.
 - **Only 20 complexes support the primary metric.** CIs are about ±0.13, so only differences that are consistent across paired repeats are claimed.
 - **Wild-type structure only.** Conformational change on mutation is not modelled.
 - **ESM-2 35M embeddings only.** The 650M zero-shot score is uninformative (§6.5), but a trained model on 650M embeddings was not tested. The sequence-only LightGBM is under-tuned on the high side (§7).
-- **Antibody chains** are assigned from SKEMPI protein names, not by numbering with ANARCI; CDR vs framework annotation is missing.
-- **Fusion is concatenation.** A learned fusion (gated MLP) was not compared, on the small-data argument in §4.2.
 
 **Next steps, and why**
-1. **Antibody side first:** CDR/framework annotation and an antibody-specific model (AbLang2, AntiFold) for antibody-side rows. Why: it is the largest stratified gap (0.35 vs 0.60) on 58% of the rows.
-2. **Transfer from the non-antibody part of SKEMPI** for the sequence branch. Why: the learning curve shows it is the only data-limited component (§7).
-3. **Model site interactions for multi-point mutations** (an `is_multi` indicator, a pairwise term between sites). Why: per-site pooling fails on them (§6.6), and they are 30% of the data.
-4. **Not** more hand-crafted geometry or ESM-IF1 features: both were tested and the geometry models have plateaued (§6.3, §6.5, §7).
+1. **Antibody side:** annotate CDR vs framework residues (ANARCI numbering) and add an antibody-specific model (AbLang2, AntiFold) for antibody-side rows.
+   Why: it is the largest gap in the error analysis (per-complex Spearman 0.35 vs 0.60 on the antigen side), on 58% of the rows.
+2. **A pretrained model that already fuses sequence and structure** (SaProt, a structure-aware language model), replacing the ESM-2 block.
+   Why: our fusion happens only after encoding, by concatenation, and sequence then adds just +0.02. In SaProt the fusion was learned during pretraining on millions of proteins,
+   so no fusion parameters have to be fitted on 668 rows, which was our reason for not training a fusion network. We did not use it at first because it blurs the
+   sequence-vs-structure ablation; with that ablation done, it is the natural test of whether a learned fusion beats concatenation. Caveat: it encodes one chain at a time,
+   so the binding partner would still come from the geometry features.
