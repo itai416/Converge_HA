@@ -1,6 +1,7 @@
 {
   "titles": {
-    "EDE review and memory": "EDA review and memory"
+    "EDE review and memory": "EDA review and memory",
+    "C experiment error analysis calibration plot": "Model C error analysis: calibration plot and case studies"
   },
   "translated": [
     "2026-09-30T15:31:10.505Z",
@@ -85,6 +86,38 @@
     "2026-10-05T08:45:12.918Z": "So the censored run is also running?",
     "2026-10-05T08:45:59.611Z": "Great.",
     "2026-10-05T09:10:29.645Z": "Okay, while the last results are running, I want you to go over the submission guidelines and tell me what we need to prepare for this assignment submission.",
-    "2026-10-05T09:28:12.028Z": "Fix the verbatim prompts.\nYou can keep prompts 63-65."
+    "2026-10-05T09:28:12.028Z": "Fix the verbatim prompts.\nYou can keep prompts 63-65.",
+    "2026-10-05T11:16:51.371Z": "Now I want you to construct the remaining commits. What we need to do: commit.",
+    "2026-10-05T09:31:39.749Z": "What is the status?",
+    "2026-10-05T09:32:59.198Z": "Only the censored + multi-point combined.",
+    "2026-10-05T10:11:41.398Z": "Status?",
+    "2026-10-05T09:33:38.493Z": "Regarding model evaluation and error analysis, we will not run SHAP, so you can drop it, and I want you to give me an updated status.",
+    "2026-10-05T09:40:26.011Z": "Regarding the 13-hour runtime, I think you can leave it like that. Regarding 4, if there is a run that we can't reproduce, don't include it in the README.",
+    "2026-10-05T11:17:15.937Z": "Okay, now we have finished with the README. We are committing the final commit, and I want you to tell me if something is missing.",
+    "2026-10-05T09:45:57.210Z": "I want to do an error analysis of the results, so I want you to do these methods:\nthe calibration plot and the structural case studies.\n\nSpecifically, I want to do it for the C experiment model.",
+    "2026-10-05T10:07:45.771Z": "I want you to explain to me exactly what those methods are testing. Explain briefly.",
+    "2026-10-05T09:47:08.636Z": "Now I want to go over the README with you, section by section, to see if the things that are in there are sensible, and fix them as I see fit.",
+    "2026-10-05T09:49:50.210Z": "And before we start doing it, I want you to go over the submission guidelines and see the section on how we are evaluated, and keep it in your memory so we can answer each of these points.",
+    "2026-10-05T10:00:10.861Z": "Let's go over the README and make it much more concise.",
+    "2026-10-05T10:18:43.163Z": "The pretrained-models table, I think we can reduce it. It doesn't add information about our choices. You can just write the pretrained models that we chose and, in a sentence, why we chose them.",
+    "2026-10-05T10:23:09.944Z": "All right, I want you to give me a review of the README. What do you think is good? What do you think is not good?",
+    "2026-10-05T10:26:25.526Z": "All right, let's make sections 6.5 to 6.7 more concise, because they are very long for experiments that actually don't work.\n\nAnd also, regarding the error analysis section, what does the table actually give us? Do we really need it, or can we just focus on the calibration and on the structural case studies, and give bottom lines and a conclusion? I want this section to be:\n- What we thought would be good and why\n- How we implemented it\n- What the results of those checks are",
+    "2026-10-05T10:31:56.247Z": "Let's talk about the limitations and next steps here. Explain each point to me briefly, and then we can discuss and make our final decision.",
+    "2026-10-05T10:36:14.595Z": "Okay, for the limitations:\n- The low amount of data is real, so you can put it in the limitations.\n- When you talk about 20 complexes: the wild-type structure is also real.\n- I need you to explain to me the \"ESM-2 35M only\" one.\n- We actually didn't choose to test the fusion, but we need to explain why we didn't choose it, or give a reason.\n\nFor the next steps, we can do the fusion that we talked about and didn't do. I need you to explain each point to me simply and briefly.",
+    "2026-10-05T10:37:35.095Z": "I want you to select the two most relevant next steps.",
+    "2026-10-05T10:39:11.764Z": "I want you to put the learned fusion instead of the second one. I was talking about a pretrained model that is already a fusion.",
+    "2026-10-05T10:39:28.810Z": "And then you can delete it from the limitations.",
+    "2026-10-05T10:40:02.967Z": "You can remove the fusion from the limitations and leave it only in the next steps.",
+    "2026-10-05T10:40:30.000Z": "And you can also delete the antibody chain assignment from names from the limitations.",
+    "2026-10-05T10:41:14.010Z": "And in the error analysis, can you make the image smaller or just put a link to the image?",
+    "2026-10-05T10:41:46.371Z": "Okay, now give me another review of the README. Tell me what is good and what is wrong.",
+    "2026-10-05T10:42:14.235Z": "I want you to go over the code and find places where we can make the code cleaner and more concise.",
+    "2026-10-05T10:45:38.505Z": "OK, let's implement those.",
+    "2026-10-05T11:07:14.756Z": "Can we stop here?",
+    "2026-10-05T11:08:21.147Z": "So for the things that are not verified, can we revert the code? Only for those?",
+    "2026-10-05T11:16:00.769Z": "Yes, but write the commit message here for me first.",
+    "2026-10-05T11:16:17.268Z": "Make it much shorter.",
+    "2026-10-05T11:16:24.542Z": "Shorter.",
+    "2026-10-05T11:16:34.126Z": "Go."
   }
 }
