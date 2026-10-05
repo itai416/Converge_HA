@@ -338,7 +338,7 @@ sites of a mutation set (sum, so that a linear model is additive over sites, or 
 | + multi, 1/√n complex weights | sum | 0.396 | −0.064 (0/5) | 0.039 |
 | + multi, 1/√n complex weights | mean | 0.410 | −0.050 (1/5) | 0.082 |
 
-1. **Adding the multi-point rows hurt single-point ranking in 23 of 24 paired comparisons (−0.05 to −0.075).** Complex weighting reduces but does not remove the harm, so the imbalance
+1. **Adding the multi-point rows hurt single-point ranking in 19 of 20 paired comparisons (4 variants × 5 repeats; −0.05 to −0.075 on average).** Complex weighting reduces but does not remove the harm, so the imbalance
    (86 rows from one complex) is not the whole story.
 2. **Multi-point ΔΔG is hard to predict from per-site features**: per-complex Spearman 0.05–0.14 and RMSE 2.0–2.7 kcal/mol (vs 1.38 for single-point).
    The sites interact (and many large sets are combinations of hotspot residues), and our per-site features cannot see that.
