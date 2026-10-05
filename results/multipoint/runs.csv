@@ -1,61 +1,91 @@
 model,repeat,test,per_complex_spearman,pooled_pearson,rmse
 singles only [sum pooling],rep0,single-point test rows,0.48115778472041687,0.489567683100744,1.3585084039457145
 singles only [sum pooling],rep0,multi-point test rows,0.07184034128135948,0.398785655159242,2.9084451381336365
+singles only [sum pooling],rep0,all test rows (single + multi),0.3672819243228734,0.3447028479460041,1.9388762277373468
 singles only [sum pooling],rep1,single-point test rows,0.43992304790784936,0.4571499129550744,1.3789096017349403
 singles only [sum pooling],rep1,multi-point test rows,0.0646782591436028,0.5179264939683651,2.5776104265102324
+singles only [sum pooling],rep1,all test rows (single + multi),0.32865809101271964,0.4162813132272854,1.809348709586652
 singles only [sum pooling],rep2,single-point test rows,0.4741380909028379,0.477654908632091,1.363708700161136
 singles only [sum pooling],rep2,multi-point test rows,0.0651429787882501,0.45319963814872577,2.620000292499204
+singles only [sum pooling],rep2,all test rows (single + multi),0.3224588367052084,0.3959131076014575,1.818755058402051
 singles only [sum pooling],rep3,single-point test rows,0.44741272783762326,0.4366442225744367,1.393797121812434
 singles only [sum pooling],rep3,multi-point test rows,-0.0003339614997308237,0.43316259312594596,2.939005783405475
+singles only [sum pooling],rep3,all test rows (single + multi),0.31282459156272213,0.35399008379982777,1.9697643224978854
 singles only [sum pooling],rep4,single-point test rows,0.45822591207025376,0.42324862119355816,1.4024619114037513
 singles only [sum pooling],rep4,multi-point test rows,0.06515074511252336,0.4770096085156438,2.644905826819027
+singles only [sum pooling],rep4,all test rows (single + multi),0.32826304736106365,0.3867387749989275,1.8498625901667058
 + multi [sum pooling],rep0,single-point test rows,0.39141854843374596,0.41450295012363353,1.4065613311629523
 + multi [sum pooling],rep0,multi-point test rows,0.10810506313686331,0.4668289032855471,2.083635383663479
++ multi [sum pooling],rep0,all test rows (single + multi),0.26114889903651606,0.4371526034621372,1.631628535112743
 + multi [sum pooling],rep1,single-point test rows,0.4088435285067359,0.4358278512086884,1.3883850424210025
 + multi [sum pooling],rep1,multi-point test rows,0.04052169131575773,0.4967198179926951,2.0261316694473437
++ multi [sum pooling],rep1,all test rows (single + multi),0.28383445835860605,0.46335565796955425,1.5992892360082913
 + multi [sum pooling],rep2,single-point test rows,0.37352443377937317,0.3854816926297113,1.4292943090084695
 + multi [sum pooling],rep2,multi-point test rows,0.059138628283212175,0.44127587291619175,2.1015252428552773
++ multi [sum pooling],rep2,all test rows (single + multi),0.2575339884720192,0.4117777338327282,1.652177285045696
 + multi [sum pooling],rep3,single-point test rows,0.4148040126049513,0.40836219667160956,1.4170602276578939
 + multi [sum pooling],rep3,multi-point test rows,0.07873596300258572,0.6029724884437833,1.852029726912739
++ multi [sum pooling],rep3,all test rows (single + multi),0.3032498681676313,0.5088051748187733,1.555480260334614
 + multi [sum pooling],rep4,single-point test rows,0.33693414558695756,0.37709210728398573,1.4429885432473275
 + multi [sum pooling],rep4,multi-point test rows,0.16361369291076794,0.5800340560473132,1.8880785489383902
++ multi [sum pooling],rep4,all test rows (single + multi),0.24748701278623098,0.48394932806457597,1.5846863204954307
 "+ multi, 1/sqrt(n) [sum pooling]",rep0,single-point test rows,0.34842394374958113,0.43339804585038605,1.4057711027285003
 "+ multi, 1/sqrt(n) [sum pooling]",rep0,multi-point test rows,0.040383645037020535,0.5495848648169315,1.9782104467948238
+"+ multi, 1/sqrt(n) [sum pooling]",rep0,all test rows (single + multi),0.23129304696296432,0.4886299300318235,1.5927089950150863
 "+ multi, 1/sqrt(n) [sum pooling]",rep1,single-point test rows,0.38499887172234026,0.3505515931478537,1.4691676248066246
 "+ multi, 1/sqrt(n) [sum pooling]",rep1,multi-point test rows,-0.016666625139672694,0.43548802474747955,2.153556889620124
+"+ multi, 1/sqrt(n) [sum pooling]",rep1,all test rows (single + multi),0.2568771827991798,0.3860756436177569,1.6958430163167393
 "+ multi, 1/sqrt(n) [sum pooling]",rep2,single-point test rows,0.39997766734063944,0.3950691935808465,1.430380317245989
 "+ multi, 1/sqrt(n) [sum pooling]",rep2,multi-point test rows,0.043051544154960236,0.4762435180614712,2.083251136549731
+"+ multi, 1/sqrt(n) [sum pooling]",rep2,all test rows (single + multi),0.2723001455566868,0.4295032479270532,1.6461374151395456
 "+ multi, 1/sqrt(n) [sum pooling]",rep3,single-point test rows,0.41408421234207393,0.39951537684004185,1.4343907757890937
 "+ multi, 1/sqrt(n) [sum pooling]",rep3,multi-point test rows,0.05279747694596562,0.5935100871420448,1.9202829489841593
+"+ multi, 1/sqrt(n) [sum pooling]",rep3,all test rows (single + multi),0.31632589290610474,0.4969812586205641,1.59032678428791
 "+ multi, 1/sqrt(n) [sum pooling]",rep4,single-point test rows,0.43397435797704426,0.38821959795377603,1.4442747106981768
 "+ multi, 1/sqrt(n) [sum pooling]",rep4,multi-point test rows,0.07769660541013255,0.38333343574315354,2.283622429949663
+"+ multi, 1/sqrt(n) [sum pooling]",rep4,all test rows (single + multi),0.30341499997632576,0.36919923724005665,1.7295498760726797
 singles only [mean pooling],rep0,single-point test rows,0.48115778472041687,0.48956768178485904,1.3585084012865398
 singles only [mean pooling],rep0,multi-point test rows,0.12588457634839575,0.5532294226433804,2.1202395402958705
+singles only [mean pooling],rep0,all test rows (single + multi),0.3373023935550309,0.4763097930261651,1.6162661144816195
 singles only [mean pooling],rep1,single-point test rows,0.43992304790784936,0.4571498925646513,1.3789096232630855
 singles only [mean pooling],rep1,multi-point test rows,0.14939521079720197,0.5613647179952331,2.117812197417337
+singles only [mean pooling],rep1,all test rows (single + multi),0.3311470514330366,0.4553924327851778,1.627582936206672
 singles only [mean pooling],rep2,single-point test rows,0.4741380909028379,0.4776549392989346,1.3637086730505936
 singles only [mean pooling],rep2,multi-point test rows,0.1614479037447451,0.4876711129117836,2.143158610375004
+singles only [mean pooling],rep2,all test rows (single + multi),0.3442220052931043,0.4509093728939752,1.6280818696996242
 singles only [mean pooling],rep3,single-point test rows,0.44741272783762326,0.4366442138063223,1.3937971269877378
 singles only [mean pooling],rep3,multi-point test rows,0.04479627673835541,0.5560894963369587,2.1240013895163936
+singles only [mean pooling],rep3,all test rows (single + multi),0.31682611953918316,0.4393195406880962,1.6388890001638865
 singles only [mean pooling],rep4,single-point test rows,0.45822591207025376,0.4232550660119326,1.4024571119846518
 singles only [mean pooling],rep4,multi-point test rows,0.11354622270266566,0.4930300284566451,2.133811774415655
+singles only [mean pooling],rep4,all test rows (single + multi),0.31585872359558925,0.4211832072665255,1.647802323195093
 + multi [mean pooling],rep0,single-point test rows,0.38109389796939563,0.4974592231109419,1.3479371557955158
 + multi [mean pooling],rep0,multi-point test rows,0.10726855062787206,0.5549300916469645,1.9841389360444563
++ multi [mean pooling],rep0,all test rows (single + multi),0.2519838146810129,0.49608983317745503,1.5589562408111588
 + multi [mean pooling],rep1,single-point test rows,0.404313247791101,0.4291437689130627,1.4034558649258981
 + multi [mean pooling],rep1,multi-point test rows,0.15519979356098765,0.4886139992140721,2.080848842824236
++ multi [mean pooling],rep1,all test rows (single + multi),0.2737743264593978,0.43200303809371543,1.6286965504695605
 + multi [mean pooling],rep2,single-point test rows,0.38345760213804386,0.46171766411947435,1.3725148693050082
 + multi [mean pooling],rep2,multi-point test rows,0.17821512526357863,0.49913190185000855,2.0824448454211604
++ multi [mean pooling],rep2,all test rows (single + multi),0.2731051007297565,0.45137441339050344,1.6104463692397586
 + multi [mean pooling],rep3,single-point test rows,0.41791243006363754,0.39409258462710567,1.4418073079938978
 + multi [mean pooling],rep3,multi-point test rows,0.1033259791800997,0.488977108315342,2.1073787188986244
++ multi [mean pooling],rep3,all test rows (single + multi),0.282713976670293,0.3964899018354207,1.6620316364684555
 + multi [mean pooling],rep4,single-point test rows,0.3961779652547273,0.38809663815352247,1.4290246094013415
 + multi [mean pooling],rep4,multi-point test rows,0.17170837843597622,0.46317115057924096,2.118366558641622
++ multi [mean pooling],rep4,all test rows (single + multi),0.2826910539374204,0.39409926759749087,1.6582238901836415
 "+ multi, 1/sqrt(n) [mean pooling]",rep0,single-point test rows,0.3884457751327821,0.43367363789546465,1.4057003203885146
 "+ multi, 1/sqrt(n) [mean pooling]",rep0,multi-point test rows,0.05392679959270335,0.5521715915099166,2.078909987921791
+"+ multi, 1/sqrt(n) [mean pooling]",rep0,all test rows (single + multi),0.27466901037164354,0.45234771417790104,1.6293554846763454
 "+ multi, 1/sqrt(n) [mean pooling]",rep1,single-point test rows,0.4230425548173529,0.4007745194986676,1.4326236870195324
 "+ multi, 1/sqrt(n) [mean pooling]",rep1,multi-point test rows,0.04375513386706524,0.4290179948334151,2.2065839026994714
+"+ multi, 1/sqrt(n) [mean pooling]",rep1,all test rows (single + multi),0.2919168289981768,0.3866293505701439,1.693347969561373
 "+ multi, 1/sqrt(n) [mean pooling]",rep2,single-point test rows,0.3930002391848676,0.41849770313904155,1.4211080748518528
 "+ multi, 1/sqrt(n) [mean pooling]",rep2,multi-point test rows,0.11622401646610929,0.39368563343253166,2.22844185511574
+"+ multi, 1/sqrt(n) [mean pooling]",rep2,all test rows (single + multi),0.2820059230345027,0.3839991641236151,1.6947344657375212
 "+ multi, 1/sqrt(n) [mean pooling]",rep3,single-point test rows,0.45008749597834063,0.3780146461830144,1.45822525853867
 "+ multi, 1/sqrt(n) [mean pooling]",rep3,multi-point test rows,0.054271163284353593,0.43384706871852063,2.190860768258026
+"+ multi, 1/sqrt(n) [mean pooling]",rep3,all test rows (single + multi),0.3092684398606266,0.3692141200628717,1.7029430253404358
 "+ multi, 1/sqrt(n) [mean pooling]",rep4,single-point test rows,0.39537451298085086,0.35758688510171893,1.4717629695510104
 "+ multi, 1/sqrt(n) [mean pooling]",rep4,multi-point test rows,0.14331374449106643,0.38262385102672125,2.216031542874916
+"+ multi, 1/sqrt(n) [mean pooling]",rep4,all test rows (single + multi),0.2887419127601056,0.3457735162399776,1.720552256924127

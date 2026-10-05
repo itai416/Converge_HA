@@ -87,7 +87,8 @@ def main(n_repeats="5"):
     rows, oof = [], {}
     for (name, r, df), (pred, _) in zip(meta, res):
         d = df.assign(pred=pred)
-        for part, sub in [("single-point test rows", d[~d["is_multi"]]), ("multi-point test rows", d[d["is_multi"]])]:
+        for part, sub in [("single-point test rows", d[~d["is_multi"]]), ("multi-point test rows", d[d["is_multi"]]),
+                          ("all test rows (single + multi)", d)]:
             rows.append({"model": name, "repeat": r, "test": part, **metrics(sub)})
         if r == "rep0":
             oof[name] = d[KEY + ["ddG", "is_multi"]].assign(pred=pred)

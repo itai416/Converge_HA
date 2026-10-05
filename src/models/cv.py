@@ -28,11 +28,13 @@ def _fit_predict(make, params, X, y, groups, w_scheme, tr, te):
 
 
 def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np.ndarray, w_scheme: str = "none",
-              train_mask=None):
+              train_mask=None, score_mask=None):
     """Return out-of-fold predictions for every row and the chosen params per outer fold.
 
     train_mask (optional boolean array): only these rows may be used for training and tuning; every row is still predicted
-    when its fold is held out (used to train on single-point rows only and still score multi-point rows)."""
+    when its fold is held out (used to train on single-point rows only and still score multi-point rows).
+    score_mask (optional): rows of the training set on which the inner CV scores a configuration (e.g. exact rows only, so that
+    censored rows can train a model without influencing which configuration is chosen)."""
     y = np.asarray(y, float)
     pred, chosen = np.full(len(y), np.nan), {}
     configs = [dict(zip(grid, v)) for v in itertools.product(*grid.values())]
@@ -46,7 +48,8 @@ def nested_cv(make, grid: dict, X: pd.DataFrame, y, groups: pd.Series, outer: np
                 oof = np.empty(len(tr))
                 for itr, ite in inner:
                     oof[ite] = _fit_predict(make, params, X, y, groups, w_scheme, tr[itr], tr[ite])
-                score = spearmanr(oof, y[tr])[0]
+                sm = np.ones(len(tr), bool) if score_mask is None else np.asarray(score_mask)[tr]
+                score = spearmanr(oof[sm], y[tr][sm])[0]
                 if np.isfinite(score) and score > best_score:
                     best, best_score = params, score
         pred[te] = _fit_predict(make, best, X, y, groups, w_scheme, tr, te)

@@ -35,14 +35,20 @@ class AugmentedRidge:
     to dividing its L2 penalty by boost**2. `scalar_cols` (e.g. geometry) are standardised and penalised
     normally but bypass the optional PCA, which only compresses the remaining (embedding) columns.
     loss="huber" minimises sum w * huber(residual, HUBER_DELTA) + alpha * ||beta||^2 with L-BFGS.
+
+    cens_col (optional): name of a 0/1 column of X marking right-censored rows, whose y is a lower bound L on the true value
+    (Tobit-style, one-sided Huber). Such a row contributes huber(max(0, L - prediction)): a prediction at or above the bound costs
+    nothing. The column is not used as a feature. Only for loss="huber" (the objective stays convex).
     """
 
     def __init__(self, alpha=1.0, boost_cols=(), boost=10.0, n_pca=None, scalar_cols=(), loss="huber",
-                 track_history=False):
+                 track_history=False, cens_col=None):
         self.alpha, self.boost_cols, self.boost, self.n_pca, self.loss = alpha, list(boost_cols), boost, n_pca, loss
-        self.scalar_cols, self.track_history = list(scalar_cols), track_history
+        self.scalar_cols, self.track_history, self.cens_col = list(scalar_cols), track_history, cens_col
 
     def _transform(self, X, fit=False):
+        if self.cens_col is not None:
+            X = X.drop(columns=[self.cens_col])
         Xb, Xs = X[self.boost_cols].values, X[self.scalar_cols].values
         Xe = X.drop(columns=self.boost_cols + self.scalar_cols).values
         if fit:
@@ -61,6 +67,8 @@ class AugmentedRidge:
         return np.hstack([Xb, Xs, Xe])
 
     def fit(self, X, y, sample_weight=None):
+        cens = X[self.cens_col].values.astype(bool) if self.cens_col is not None else np.zeros(len(y), bool)
+        assert self.loss == "huber" or not cens.any(), "censored rows need the Huber loss"
         Z, y = self._transform(X, fit=True), np.asarray(y, float)
         w = np.ones(len(y)) if sample_weight is None else np.asarray(sample_weight, float)
         w = w / w.mean()
@@ -72,6 +80,7 @@ class AugmentedRidge:
         def f(p):
             b, c = p[:-1], p[-1]
             r = y - Z @ b - c
+            r = np.where(cens, np.maximum(r, 0.0), r)  # censored: only a prediction below the bound is penalised
             a = np.abs(r)
             quad = a <= HUBER_DELTA
             loss = np.where(quad, 0.5 * r ** 2, HUBER_DELTA * (a - 0.5 * HUBER_DELTA))

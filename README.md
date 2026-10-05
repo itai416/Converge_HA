@@ -329,16 +329,18 @@ First of the "more data" experiments ([scripts/13_multipoint_features.py](script
 (30 complexes, 7 of them with no single-point rows; all 1,058 sites located and featurised) to the 668 single-point rows. Per-site features of model C are pooled over the
 sites of a mutation set (sum, so that a linear model is additive over sites, or mean). Same folds and C ridge as before; test rows are scored separately.
 
-| Training set | Pooling | Single-point test rows: per-complex Spearman | Paired vs singles-only | Multi-point test rows: per-complex Spearman |
-|---|---|---|---|---|
-| singles only (= C) | sum | **0.460** | – | 0.053 (additivity baseline) |
-| singles only | mean | 0.460 | – | 0.119 |
-| + multi | sum | 0.385 | −0.075 (0/5 repeats) | 0.090 |
-| + multi | mean | 0.397 | −0.064 (0/5) | 0.143 |
-| + multi, 1/√n complex weights | sum | 0.396 | −0.064 (0/5) | 0.039 |
-| + multi, 1/√n complex weights | mean | 0.410 | −0.050 (1/5) | 0.082 |
+| Training set | Pooling | Single-point test rows | Multi-point test rows | **All test rows (single + multi)** | Paired vs singles-only, all rows |
+|---|---|---|---|---|---|
+| singles only (= C) | sum | **0.460** | 0.053 (additivity baseline) | **0.332** | – |
+| singles only | mean | 0.460 | 0.119 | 0.329 | −0.003 (3/5) |
+| + multi | sum | 0.385 | 0.090 | 0.271 | −0.061 (0/5) |
+| + multi | mean | 0.397 | 0.143 | 0.273 | −0.059 (0/5) |
+| + multi, 1/√n complex weights | sum | 0.396 | 0.039 | 0.276 | −0.056 (1/5) |
+| + multi, 1/√n complex weights | mean | 0.410 | 0.082 | 0.289 | −0.043 (0/5) |
 
-1. **Adding the multi-point rows hurt single-point ranking in 19 of 20 paired comparisons (4 variants × 5 repeats; −0.05 to −0.075 on average).** Complex weighting reduces but does not remove the harm, so the imbalance
+(Per-complex Spearman, mean over 5 fold assignments; the last column is the paired difference on identical rows and folds.)
+
+1. **Adding the multi-point rows hurt single-point ranking in 19 of 20 paired comparisons (4 variants × 5 repeats; −0.05 to −0.075 on average), and it also lowers the combined single + multi score** (−0.04 to −0.06, never better in more than 1 of 5 repeats). The multi-point rows themselves improve only with mean pooling (0.119 → 0.143, +0.09 paired vs the sum-pooled baseline, 5/5), which is not enough to offset the loss on single-point rows. Complex weighting reduces but does not remove the harm, so the imbalance
    (86 rows from one complex) is not the whole story.
 2. **Multi-point ΔΔG is hard to predict from per-site features**: per-complex Spearman 0.05–0.14 and RMSE 2.0–2.7 kcal/mol (vs 1.38 for single-point).
    The sites interact (and many large sets are combinations of hotspot residues), and our per-site features cannot see that.
