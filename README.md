@@ -29,6 +29,14 @@ mutations. This drives the split and the primary metric. Complexes with an unsee
 - **Scope.** v1 is single-point, uncensored mutations. The 381 multi-point rows and 74 censored single-point rows were tested as extra training data in §6.5 and did not help.
 - **Residue mapping.** Residues are located through SKEMPI's `.mapping` files (PDB numbering, insertion codes). All 668 wild-type residues match the structure.
 - **Antigen groups.** Antigens are grouped (lysozyme, gp120, integrin α-1, ...). Anti-idiotype complexes (e.g. 1DVF) are their own class.
+- **What is trained on and what is scored.** All 668 rows from all 46 complexes take part in cross-validation. In each of the 5 outer folds a model is trained on
+  about 530 rows from about 37 complexes and tested on the other ~9 complexes (121–142 rows), so every row is predicted once, by a model that never saw its complex.
+
+  | | Rows | Complexes |
+  |---|---|---|
+  | All data (training, tuning, pooled Pearson, RMSE) | 668 | 46 |
+  | Complexes with ≥10 rows: **per-complex Spearman (primary)** | 576 (86%) | 20 |
+  | Complexes with <10 rows: trained on and in pooled metrics, not in the primary average | 92 (14%) | 26 |
 
 Code: [src/data/](src/data/), [scripts/01_clean.py](scripts/01_clean.py).
 
